@@ -1,0 +1,31 @@
+<phpunit 	bootstrap="vendor/autoload.php"
+            colors="true"
+            convertErrorsToExceptions="true"
+            convertNoticesToExceptions="true"
+            convertWarningsToExceptions="true"
+            processIsolation="true"
+            stopOnFailure="true">
+
+    <php>
+        <!-- Specify the value of your Customer ID -->
+        <env name="VM_CUSTOMER_ID" value="YOUR CUSTOMER ID HERE"/>
+        <!-- Specify the Customer API Token -->
+        <env name="VM_CUSTOMER_API_TOKEN" value="YOUR API TOKEN HERE"/>
+        <!-- Specify the API URL -->
+        <env name="VM_API_URL" value="https://api.bbbondemand.com/v1"/>
+        <!-- Start Instance Name -->
+        <env name="VM_START_INSTANCE_NAME" value="A RANDMON INSTANCE NAME"/>
+        <!-- Stop Instance Name -->
+        <env name="VM_STOP_INSTANCE_NAME" value="SAME RANDOM INSTANCE NAME"/>
+        <!-- Delete Instance Name -->
+        <env name="VM_DELETE_INSTANCE_NAME" value="SAME RANDOM INSTANCE NAME"/>
+        <!-- Instance Name For Structure Check -->
+        <env name="VM_INSTANCE_NAME" value="SAME RANDOM INSTANCE NAME"/>
+    </php>
+
+    <testsuites>
+        <testsuite name="Unit Tests">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
