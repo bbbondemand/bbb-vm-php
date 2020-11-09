@@ -23,14 +23,13 @@ class UrlBuilder
      * @var string
      */
     private $customerId;
-    /**
-     * @var string
-     */
-    private $customerApiToken;
+
     /**
      * @var string
      */
     private $apiServerBaseUrl;
+
+    public const API_SERVER_BASE_URL = 'https://bbbondemand.com/api/v1';
 
     /**
      * UrlBuilder constructor.
@@ -38,10 +37,10 @@ class UrlBuilder
      * @param $customerId
      * @param $apiServerBaseUrl
      */
-    public function __construct($customerId, $apiServerBaseUrl)
+    public function __construct($customerId, string $apiServerBaseUrl = null)
     {
         $this->customerId       = $customerId;
-        $this->apiServerBaseUrl = $apiServerBaseUrl;
+        $this->apiServerBaseUrl = $apiServerBaseUrl ?? self::API_SERVER_BASE_URL;
     }
 
     /**

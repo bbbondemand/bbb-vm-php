@@ -7,7 +7,7 @@ class UrlBuilderTest extends TestCase
 {
     public function testBuildUrl()
     {
-        $apiServerBaseUrl = 'https://bbbondemand.com/api/v1';
+        $apiServerBaseUrl = UrlBuilder::API_SERVER_BASE_URL;
         $customerId = 'someCustomerId';
         $urlBuilder = new UrlBuilder('someCustomerId', $apiServerBaseUrl);
         $params = ['myParam' => 'myVal'];

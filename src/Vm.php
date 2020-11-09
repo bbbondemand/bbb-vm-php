@@ -17,13 +17,12 @@ use BBBondemand\Enums\RecordingsApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use RuntimeException;
+use function json_decode;
 
 class Vm
 {
-    /**
-     * @var string
-     */
-    protected $customerId;
     /**
      * @var string
      */
@@ -34,43 +33,66 @@ class Vm
      */
     protected $urlBuilder;
 
-    public const API_SERVER_BASE_URI = 'https://bbbondemand.com/api/v1';
-
-    public function __construct(string $customerId, string $customerApiToken)
+    public function __construct(string $customerApiToken, UrlBuilder $urlBuilder)
     {
-        $this->customerId       = $customerId;
         $this->customerApiToken = $customerApiToken;
-        $this->urlBuilder       = new UrlBuilder($this->customerId, self::API_SERVER_BASE_URI);
+        $this->urlBuilder = $urlBuilder;
     }
 
     public function getRegions()
     {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        return $this->executeApiCall($url);
+        return $this->getApiCall($url);
     }
 
-    public function executeApiCall($url, string $requestType = 'GET', array $paramJson, $getJson = true)
+    // ------------------------------------------------------------------------
+    // Utility methods:
+
+    /**
+     * @param string $url
+     * @param array|null $params
+     * @return mixed
+     */
+    public function getApiCall(string $url, array $params = null)
     {
-        $client = new Client([
-            'headers' => $this->getApiCallHeaders()
-        ]);
-
-        try {
-            $responseJson = $client->request($requestType, $url, $this->getApiCallParams($paramJson))
-                                   ->getBody()
-                                   ->getContents();
-
-            if ($getJson) {
-                $responseJson = json_decode($responseJson, true);
-            }
-        } catch (\Exception $e) {
-            $response     = $e->getResponse();
-            $responseJson = json_decode($response->getBody()
-                                                    ->getContents(), true);
-        }
-
-        return $responseJson;
+        return $this->executeApiCall('GET', $url, $params);
     }
+
+    /**
+     * @param string $httpMethod
+     * @param string $url
+     * @param array|null $params
+     * @return mixed
+     */
+    public function executeApiCall(string $httpMethod, string $url, array $params = null)
+    {
+        $client = new Client(['headers' => $this->getApiCallHeaders()]);
+
+        $requestOptions = ['verify' => false];
+        if ($params) {
+            $requestOptions['json'] = (array) $params;
+        }
+        try {
+            $response = $client->request($httpMethod, $url, $requestOptions);
+            $responsePayload = $response->getBody()->getContents();
+            $result = json_decode($responsePayload,true);
+        } catch (RequestException $e) {
+            $response = $e->getResponse();
+            if ($response) {
+                $result = json_decode($response->getBody()->getContents(), true);
+            } else {
+                $result = [
+                    'data' => [],
+                    'message' => $e->getMessage(),
+                    'status' => 'fail',
+                ];
+            }
+        }
+        return $result;
+    }
+
+    // ------------------------------------------------------------------------
+    // API:
 
     public function getApiCallHeaders(): array
     {
@@ -79,20 +101,9 @@ class Vm
         ];
     }
 
-    public function getApiCallParams($params)
-    {
-        $returnParams['verify'] = false;
-
-        if (!empty($params)) {
-            $returnParams['json'] = $params;
-        }
-
-        return $returnParams;
-    }
-
     public function getInstances($params = [])
     {
-        return $this->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::LIST, [], http_build_query($params)));
+        return $this->executeApiCall('GET', $this->urlBuilder->buildUrl(InstancesApiRoute::LIST, [], http_build_query($params)));
     }
 
     public function createInstance($param = ["MachineSize" => "small"])
@@ -118,11 +129,11 @@ class Vm
     public function instanceNameValidate($instanceName)
     {
         if ($instanceName == "") {
-            throw new \RuntimeException("instance name can't be blank");
+            throw new RuntimeException("instance name can't be blank");
         }
 
         if (strlen($instanceName) < 19 || strlen($instanceName) > 22) {
-            throw new \RuntimeException("invalid instance name: the length must be between 19 and 22");
+            throw new RuntimeException("invalid instance name: the length must be between 19 and 22");
         }
 
         return true;

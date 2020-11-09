@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -17,12 +18,10 @@ use PHPUnit\Framework\TestCase;
 class VmTest extends TestCase
 {
     private $vm;
-    private $baseUrl;
-    private $customerId;
-    private $start_instance_name;
-    private $stop_instance_name;
-    private $delete_instance_name;
-    private $instance_name;
+    private $startInstanceName;
+    private $stopInstanceName;
+    private $deleteInstanceName;
+    private $instanceName;
     private $urlBuilder;
 
     /**
@@ -31,30 +30,21 @@ class VmTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-
-        $envVars = $this->readEnvVars();
-
-        $this->baseUrl = $envVars['VM_API_URL'];
-        $this->customerId = $envVars['VM_CUSTOMER_ID'];
-
-        $this->start_instance_name = $envVars['VM_START_INSTANCE_NAME'];
-        $this->stop_instance_name = $envVars['VM_STOP_INSTANCE_NAME'];
-        $this->delete_instance_name = $envVars['VM_DELETE_INSTANCE_NAME'];
-        $this->instance_name = $envVars['VM_INSTANCE_NAME'];
-
-        $this->urlBuilder = new UrlBuilder($this->customerId, $this->baseUrl);
-        $this->vm         = new Vm($this->customerId, $envVars['VM_CUSTOMER_API_TOKEN']);
+        $conf = Sut::vmConf();
+        $baseUrl = $conf['apiUrl'];
+        $customerId = $conf['customerId'];
+        $this->startInstanceName = $conf['startInstanceName'];
+        $this->stopInstanceName = $conf['stopInstanceName'];
+        $this->deleteInstanceName = $conf['deleteInstanceName'];
+        $this->instanceName = $conf['instanceName'];
+        $this->urlBuilder = new UrlBuilder($customerId, $baseUrl);
+        $this->vm = new Vm($conf['customerApiToken'], $this->urlBuilder);
     }
 
-    /**
-     * Test url build
-     */
-    public function testUrlBuild(): void
+    public function testGetRegions()
     {
-
-        $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        $this->assertContains($this->customerId, $url);
-        $this->assertContains($this->baseUrl, $url);
+        $regions = $this->vm->getRegions();
+        $this->markTestIncomplete();
     }
 
     /**
@@ -72,7 +62,7 @@ class VmTest extends TestCase
      */
     public function testStartInstanceByName(): void
     {
-        $response = $this->vm->startInstanceByName($this->start_instance_name);
+        $response = $this->vm->startInstanceByName($this->startInstanceName);
         $this->assertEquals('success', $response['status']);
         $this->assertTrue(true);
     }
@@ -82,7 +72,7 @@ class VmTest extends TestCase
      */
     public function testStopInstanceByName(): void
     {
-        $response = $this->vm->stopInstanceByName($this->stop_instance_name);
+        $response = $this->vm->stopInstanceByName($this->stopInstanceName);
         $this->assertEquals('success', $response['status']);
         $this->assertTrue(true);
     }
@@ -92,7 +82,7 @@ class VmTest extends TestCase
      */
     public function testDeleteInstanceByName(): void
     {
-        $response = $this->vm->deleteInstanceByName($this->delete_instance_name);
+        $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
         $this->assertEquals('success', $response['status']);
         $this->assertTrue(true);
     }
@@ -125,7 +115,7 @@ class VmTest extends TestCase
      */
     public function testMatchInstanceByNameArrayStructure(): void
     {
-        $responseInstanceByName = $this->vm->getInstanceByName($this->instance_name);
+        $responseInstanceByName = $this->vm->getInstanceByName($this->instanceName);
         // print_r($responseInstanceByName);
 
         if (isset($responseInstanceByName['data'])) {
@@ -205,29 +195,8 @@ class VmTest extends TestCase
      */
     public function testExecuteDeleteApiCall(): void
     {
-        $param['name'] = $this->delete_instance_name;
-        $response      = $this->vm->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
+        $param['name'] = $this->deleteInstanceName;
+        $response = $this->vm->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
         $this->assertEquals('success', $response['status']);
-    }
-
-    private function readEnvVars(): array
-    {
-        $vars = [];
-        foreach ([
-                     'VM_CUSTOMER_ID',
-                     'VM_CUSTOMER_API_TOKEN',
-                     'VM_API_URL',
-                     'VM_START_INSTANCE_NAME',
-                     'VM_STOP_INSTANCE_NAME',
-                     'VM_DELETE_INSTANCE_NAME',
-                     'VM_INSTANCE_NAME'
-                 ] as $name) {
-            $val = getenv($name);
-            if (!$val) {
-                $this->fail("The environment variable $name is not set");
-            }
-            $vars[$name] = $val;
-        }
-        return $vars;
     }
 }
