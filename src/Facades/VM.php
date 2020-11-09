@@ -1,13 +1,12 @@
 <?php
+namespace BBBondemand\Facades;
 
-    namespace BBBondemand\Facades;
+use Illuminate\Support\Facades\Facade;
 
-    use Illuminate\Support\Facades\Facade;
-
-    class VM extends Facade
+class VM extends Facade
+{
+    protected static function getFacadeAccessor(): string
     {
-        protected static function getFacadeAccessor(): string
-        {
-            return 'BBBondemand';
-        }
+        return 'BBBondemand';
     }
+}

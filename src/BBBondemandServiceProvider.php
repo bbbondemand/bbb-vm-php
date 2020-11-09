@@ -1,20 +1,19 @@
 <?php
+namespace BBBondemand;
 
-    namespace BBBondemand;
+use Illuminate\Support\ServiceProvider;
 
-    use Illuminate\Support\ServiceProvider;
-
-    class BBBondemandServiceProvider extends ServiceProvider
+class BBBondemandServiceProvider extends ServiceProvider
+{
+    public function register(): void
     {
-        public function register(): void
-        {
 
-        }
-
-        public function boot(): void
-        {
-            $this->app->bind('BBBondemand', function ($app) {
-                return new VM();
-            });
-        }
     }
+
+    public function boot(): void
+    {
+        $this->app->bind('BBBondemand', function ($app) {
+            return new VM();
+        });
+    }
+}
