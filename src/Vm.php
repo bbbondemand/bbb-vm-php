@@ -18,7 +18,7 @@ use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
 use GuzzleHttp\Client;
 
-class VM
+class Vm
 {
 
     protected $customerID;
@@ -56,7 +56,7 @@ class VM
         } catch (\Exception $e) {
             $response     = $e->getResponse();
             $responseJson = json_decode($response->getBody()
-                                                 ->getContents(), true);
+                                                    ->getContents(), true);
         }
 
         return $responseJson;
@@ -150,5 +150,4 @@ class VM
 
         return $this->executeApiCall($this->urlBuilder->buildUrl(RecordingsApiRoute::GET, $param));
     }
-
 }

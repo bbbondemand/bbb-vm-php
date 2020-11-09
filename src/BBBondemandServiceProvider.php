@@ -13,7 +13,7 @@ class BBBondemandServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->bind('BBBondemand', function ($app) {
-            return new VM();
+            return new Vm();
         });
     }
 }

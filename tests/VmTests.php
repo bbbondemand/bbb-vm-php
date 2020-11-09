@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @author yourname
  */
-class BBBClassTests extends TestCase
+class VmTests extends TestCase
 {
 
     private $vm;

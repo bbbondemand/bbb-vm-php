@@ -34,7 +34,7 @@
                 "BBBondemand\\BBBondemandServiceProvider"
             ],
             "aliases": {
-                "BBBondemand": "BBBondemand\\Facades\\VM"
+                "BBBondemand": "BBBondemand\\Facades\\Vm"
             }
         }
     }
