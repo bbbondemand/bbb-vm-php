@@ -22,7 +22,7 @@ class UrlBuilder
     /**
      * @var string
      */
-    private $customerID;
+    private $customerId;
     /**
      * @var string
      */
@@ -40,7 +40,7 @@ class UrlBuilder
      */
     public function __construct($customerID, $apiServerBaseUrl)
     {
-        $this->customerID       = $customerID;
+        $this->customerId       = $customerID;
         $this->apiServerBaseUrl = $apiServerBaseUrl;
     }
 
@@ -60,6 +60,6 @@ class UrlBuilder
         $route       = empty($params) ? $route : ($variable != '' ? str_replace("{" . $variable . "}", $params[$variable], $route) : $route);
         $queryString = !empty($queryString) ? '?' . $queryString : '';
 
-        return $this->apiServerBaseUrl . '/' . $this->customerID . '/vm/' . $route . $queryString;
+        return $this->apiServerBaseUrl . '/' . $this->customerId . '/vm/' . $route . $queryString;
     }
 }

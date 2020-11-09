@@ -20,23 +20,35 @@ use GuzzleHttp\Client;
 
 class Vm
 {
-
-    protected $customerID;
+    /**
+     * @var string
+     */
+    protected $customerId;
+    /**
+     * @var string
+     */
     protected $customerApiToken;
+    /**
+     * @var string
+     */
     protected $apiServerBaseUrl;
+    /**
+     * @var UrlBuilder
+     */
     protected $urlBuilder;
 
-    public function __construct($customer, $api)
+    public function __construct(string $customerId, string $customerApiToken)
     {
-        $this->customerID       = $customer;
-        $this->customerApiToken = $api;
+        $this->customerId       = $customerId;
+        $this->customerApiToken = $customerApiToken;
         $this->apiServerBaseUrl = 'https://bbbondemand.com/api/v1';
-        $this->urlBuilder       = new UrlBuilder($this->customerID, $this->apiServerBaseUrl);
+        $this->urlBuilder       = new UrlBuilder($this->customerId, $this->apiServerBaseUrl);
     }
 
     public function getRegions()
     {
-        return $this->executeApiCall($this->urlBuilder->buildUrl(RegionsApiRoute::LIST));
+        $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
+        return $this->executeApiCall($url);
     }
 
     public function executeApiCall($url, $requestType = 'GET', array $paramJson, $getJson = true)

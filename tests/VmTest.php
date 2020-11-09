@@ -1,6 +1,8 @@
 <?php declare(strict_types=1);
 use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
+use BBBondemand\Util\UrlBuilder;
+use BBBondemand\Vm;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -11,13 +13,11 @@ use PHPUnit\Framework\TestCase;
  *
  * @author yourname
  */
-class VmTests extends TestCase
+class VmTest extends TestCase
 {
-
     private $vm;
     private $baseUrl;
-    private $customer_id;
-    private $customer_api_token;
+    private $customerId;
     private $start_instance_name;
     private $stop_instance_name;
     private $delete_instance_name;
@@ -27,48 +27,22 @@ class VmTests extends TestCase
     /**
      * Setup test class
      */
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        foreach ([
-                     'VM_CUSTOMER_ID',
-                     'VM_CUSTOMER_API_TOKEN',
-                     'VM_API_URL',
-                     'VM_START_INSTANCE_NAME',
-                     'VM_STOP_INSTANCE_NAME',
-                     'VM_DELETE_INSTANCE_NAME',
-                     'VM_INSTANCE_NAME'
-                 ] as $k) {
-            if (!getenv($k)) {
-                $this->fail('$_SERVER[\'' . $k . '\'] not set in '
-                    . 'phpunit.xml');
-            }
-        }
-        $this->baseUrl              = getenv('VM_API_URL');
-        $this->customer_id          = getenv('VM_CUSTOMER_ID');
-        $this->customer_api_token   = getenv('VM_CUSTOMER_API_TOKEN');
-        $this->start_instance_name  = getenv('VM_START_INSTANCE_NAME');
-        $this->stop_instance_name   = getenv('VM_STOP_INSTANCE_NAME');
-        $this->delete_instance_name = getenv('VM_DELETE_INSTANCE_NAME');
-        $this->instance_name        = getenv('VM_INSTANCE_NAME');
+        $envVars = $this->readEnvVars();
 
-        $this->urlBuilder = new BBBondemand\Util\UrlBuilder($this->customer_id, $this->baseUrl);
-        $this->vm         = new BBBondemand\VM($this->customer_id, $this->customer_api_token);
-    }
+        $this->baseUrl = $envVars['VM_API_URL'];
+        $this->customerId = $envVars['VM_CUSTOMER_ID'];
 
-    /**
-     * Just check if the YourClass has no syntax error
-     *
-     * This is just a simple check to make sure your library has no syntax error. This helps you troubleshoot
-     * any typo before you even use this library in a real project.
-     *
-     */
-    public function testIsThereAnySyntaxError(): void
-    {
-        $var = new BBBondemand\VM;
-        $this->assertTrue(is_object($var));
-        unset($var);
+        $this->start_instance_name = $envVars['VM_START_INSTANCE_NAME'];
+        $this->stop_instance_name = $envVars['VM_STOP_INSTANCE_NAME'];
+        $this->delete_instance_name = $envVars['VM_DELETE_INSTANCE_NAME'];
+        $this->instance_name = $envVars['VM_INSTANCE_NAME'];
+
+        $this->urlBuilder = new UrlBuilder($this->customerId, $this->baseUrl);
+        $this->vm         = new Vm($this->customerId, $envVars['VM_CUSTOMER_API_TOKEN']);
     }
 
     /**
@@ -77,7 +51,7 @@ class VmTests extends TestCase
     public function testUrlBuild(): void
     {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        $this->assertContains($this->customer_id, $url);
+        $this->assertContains($this->customerId, $url);
         $this->assertContains($this->baseUrl, $url);
     }
 
@@ -232,5 +206,26 @@ class VmTests extends TestCase
         $param['name'] = $this->delete_instance_name;
         $response      = $this->vm->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
         $this->assertEquals('success', $response['status']);
+    }
+
+    private function readEnvVars(): array
+    {
+        $vars = [];
+        foreach ([
+                     'VM_CUSTOMER_ID',
+                     'VM_CUSTOMER_API_TOKEN',
+                     'VM_API_URL',
+                     'VM_START_INSTANCE_NAME',
+                     'VM_STOP_INSTANCE_NAME',
+                     'VM_DELETE_INSTANCE_NAME',
+                     'VM_INSTANCE_NAME'
+                 ] as $name) {
+            $val = getenv($name);
+            if (!$val) {
+                $this->fail("The environment variable $name is not set");
+            }
+            $vars[$name] = $val;
+        }
+        return $vars;
     }
 }
