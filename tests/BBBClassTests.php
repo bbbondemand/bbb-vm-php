@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
 use PHPUnit\Framework\TestCase;
