@@ -35,12 +35,12 @@ class UrlBuilder
     /**
      * UrlBuilder constructor.
      *
-     * @param $customerID
+     * @param $customerId
      * @param $apiServerBaseUrl
      */
-    public function __construct($customerID, $apiServerBaseUrl)
+    public function __construct($customerId, $apiServerBaseUrl)
     {
-        $this->customerId       = $customerID;
+        $this->customerId       = $customerId;
         $this->apiServerBaseUrl = $apiServerBaseUrl;
     }
 
@@ -48,13 +48,14 @@ class UrlBuilder
      * Builds an API method URL that includes the url + params.
      *
      * @param string $route
-     * @param array  $params
+     * @param array|null  $params
      * @param string $queryString
      *
      * @return string
      */
-    public function buildUrl($route = '', array $params, $queryString = ''): string
+    public function buildUrl(string $route, array $params = null, string $queryString = ''): string
     {
+        $params = (array) $params;
         preg_match('#\{(.*?)\}#', $route, $match);
         $variable    = $match[1] ?? '';
         $route       = empty($params) ? $route : ($variable != '' ? str_replace("{" . $variable . "}", $params[$variable], $route) : $route);

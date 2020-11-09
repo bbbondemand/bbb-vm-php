@@ -28,21 +28,19 @@ class Vm
      * @var string
      */
     protected $customerApiToken;
-    /**
-     * @var string
-     */
-    protected $apiServerBaseUrl;
+
     /**
      * @var UrlBuilder
      */
     protected $urlBuilder;
 
+    public const API_SERVER_BASE_URI = 'https://bbbondemand.com/api/v1';
+
     public function __construct(string $customerId, string $customerApiToken)
     {
         $this->customerId       = $customerId;
         $this->customerApiToken = $customerApiToken;
-        $this->apiServerBaseUrl = 'https://bbbondemand.com/api/v1';
-        $this->urlBuilder       = new UrlBuilder($this->customerId, $this->apiServerBaseUrl);
+        $this->urlBuilder       = new UrlBuilder($this->customerId, self::API_SERVER_BASE_URI);
     }
 
     public function getRegions()
@@ -51,7 +49,7 @@ class Vm
         return $this->executeApiCall($url);
     }
 
-    public function executeApiCall($url, $requestType = 'GET', array $paramJson, $getJson = true)
+    public function executeApiCall($url, string $requestType = 'GET', array $paramJson, $getJson = true)
     {
         $client = new Client([
             'headers' => $this->getApiCallHeaders()

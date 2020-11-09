@@ -1,8 +1,9 @@
 <?php declare(strict_types=1);
+namespace BBBondemand;
+
 use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
-use BBBondemand\Vm;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -50,6 +51,7 @@ class VmTest extends TestCase
      */
     public function testUrlBuild(): void
     {
+
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
         $this->assertContains($this->customerId, $url);
         $this->assertContains($this->baseUrl, $url);
