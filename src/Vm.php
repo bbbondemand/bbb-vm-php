@@ -8,7 +8,6 @@
  *
  * @author Richard Phillips
  */
-
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -17,6 +16,8 @@ use BBBondemand\Enums\RecordingsApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use RuntimeException;
 use function json_decode;
@@ -32,6 +33,17 @@ class Vm
      * @var UrlBuilder
      */
     protected $urlBuilder;
+    /**
+     * @var
+     */
+    private $httpClient;
+
+    private const UNKNOWN_ERR = 1;
+    private const INVALID_RESPONSE_STATUS_ERR = 2;
+    private const INTERNAL_ERR = 3;
+
+    public const SUCCESS_RESPONSE = 'success';
+    public const FAIL_RESPONSE = 'fail';
 
     public function __construct(string $customerApiToken, UrlBuilder $urlBuilder)
     {
@@ -39,10 +51,30 @@ class Vm
         $this->urlBuilder = $urlBuilder;
     }
 
-    public function getRegions()
+    // ------------------------------------------------------------------------
+    // Remote API:
+
+    public function getRecordings()
+    {
+        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::LIST);
+        $response = $this->executeGetApiCall($url);
+        if (array_key_exists('data', $response) && $response['data'] === null) { // normalize empty result for collections
+            $response['data'] = $this->mkEmptyDataResult();
+        }
+        return $response;
+    }
+
+    public function getRecordingById($recordingId)
+    {
+        $param['recordingID'] = $recordingId;
+
+        return $this->executeApiCall($this->urlBuilder->buildUrl(RecordingsApiRoute::GET, $param));
+    }
+
+    public function getRegions(): array
     {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        return $this->getApiCall($url);
+        return $this->executeGetApiCall($url);
     }
 
     // ------------------------------------------------------------------------
@@ -51,9 +83,9 @@ class Vm
     /**
      * @param string $url
      * @param array|null $params
-     * @return mixed
+     * @return array
      */
-    public function getApiCall(string $url, array $params = null)
+    public function executeGetApiCall(string $url, array $params = null): array
     {
         return $this->executeApiCall('GET', $url, $params);
     }
@@ -62,44 +94,87 @@ class Vm
      * @param string $httpMethod
      * @param string $url
      * @param array|null $params
-     * @return mixed
+     * @return array
      */
-    public function executeApiCall(string $httpMethod, string $url, array $params = null)
+    public function executeApiCall(string $httpMethod, string $url, array $params = null): array
     {
-        $client = new Client(['headers' => $this->getApiCallHeaders()]);
-
         $requestOptions = ['verify' => false];
         if ($params) {
-            $requestOptions['json'] = (array) $params;
+            $requestOptions['json'] = (array)$params;
         }
         try {
-            $response = $client->request($httpMethod, $url, $requestOptions);
-            $responsePayload = $response->getBody()->getContents();
-            $result = json_decode($responsePayload,true);
+            $httpClient = $this->getHttpClient();
+            $response = $httpClient->request($httpMethod, $url, $requestOptions);
+            return $this->checkResponse($response, false);
         } catch (RequestException $e) {
             $response = $e->getResponse();
-            if ($response) {
-                $result = json_decode($response->getBody()->getContents(), true);
-            } else {
-                $result = [
-                    'data' => [],
-                    'message' => $e->getMessage(),
-                    'status' => 'fail',
-                ];
+            return $this->checkResponse($response, true);
+        } /** @noinspection PhpUndefinedClassInspection */ catch (GuzzleException $e) {
+            return $this->mkErrResult(self::INTERNAL_ERR, 'Internal error has occurred');
+        }
+    }
+
+    public function setHttpClient(ClientInterface $httpClient)
+    {
+        $this->httpClient = $httpClient;
+        return $this;
+    }
+
+    public function getHttpClient(): ClientInterface
+    {
+        if (null === $this->httpClient) {
+            $this->httpClient = $this->mkHttpClient();
+        }
+        return $this->httpClient;
+    }
+
+    protected function mkHttpClient(): ClientInterface
+    {
+        return new Client(['headers' => [
+            'APITOKEN' => $this->customerApiToken
+        ]]);
+    }
+
+    private function checkResponse($response, bool $isErr)
+    {
+        if ($response) {
+            $responsePayload = json_decode($response->getBody()->getContents(), true);
+            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_RESPONSE && $responsePayload['status'] !== self::FAIL_RESPONSE)) {
+                if (isset($responsePayload['message'])) {
+                    return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, $responsePayload['message']);
+                }
+                return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value");
+            }
+            if (!$isErr) {
+                return $responsePayload; // it is a valid response, return it as is.
             }
         }
-        return $result;
+        return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error');
+    }
+
+    private function mkErrResult(int $errCode, $message): array
+    {
+        return [
+            'data' => $this->mkEmptyDataResult(),
+            'message' => '[ERR:' . $errCode . '] ' . (string) $message,
+            'status' => 'fail',
+        ];
+    }
+
+    /**
+     * @return mixed
+     */
+    private function mkEmptyDataResult()
+    {
+        return [];
     }
 
     // ------------------------------------------------------------------------
-    // API:
+    // todo:
 
-    public function getApiCallHeaders(): array
-    {
-        return [
-            'APITOKEN' => $this->customerApiToken
-        ];
-    }
+
+
+
 
     public function getInstances($params = [])
     {
@@ -160,15 +235,5 @@ class Vm
         return $this->executeApiCall($this->urlBuilder->buildUrl(MeetingsApiRoute::LIST));
     }
 
-    public function getRecordings()
-    {
-        return $this->executeApiCall($this->urlBuilder->buildUrl(RecordingsApiRoute::LIST));
-    }
 
-    public function getRecordingById($recordingId)
-    {
-        $param['recordingID'] = $recordingId;
-
-        return $this->executeApiCall($this->urlBuilder->buildUrl(RecordingsApiRoute::GET, $param));
-    }
 }

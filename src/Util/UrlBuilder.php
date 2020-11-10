@@ -27,20 +27,20 @@ class UrlBuilder
     /**
      * @var string
      */
-    private $apiServerBaseUrl;
+    private $baseApiUrl;
 
-    public const API_SERVER_BASE_URL = 'https://bbbondemand.com/api/v1';
+    public const BASE_API_URL = 'https://bbbondemand.com/api/v1';
 
     /**
      * UrlBuilder constructor.
      *
      * @param $customerId
-     * @param $apiServerBaseUrl
+     * @param $baseApiUrl
      */
-    public function __construct($customerId, string $apiServerBaseUrl = null)
+    public function __construct($customerId, string $baseApiUrl = null)
     {
         $this->customerId       = $customerId;
-        $this->apiServerBaseUrl = $apiServerBaseUrl ?? self::API_SERVER_BASE_URL;
+        $this->baseApiUrl = $baseApiUrl ?? self::BASE_API_URL;
     }
 
     /**
@@ -60,6 +60,6 @@ class UrlBuilder
         $route       = empty($params) ? $route : ($variable != '' ? str_replace("{" . $variable . "}", $params[$variable], $route) : $route);
         $queryString = !empty($queryString) ? '?' . $queryString : '';
 
-        return $this->apiServerBaseUrl . '/' . $this->customerId . '/vm/' . $route . $queryString;
+        return $this->baseApiUrl . '/' . $this->customerId . '/vm/' . $route . $queryString;
     }
 }

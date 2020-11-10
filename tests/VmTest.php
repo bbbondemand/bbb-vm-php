@@ -1,5 +1,4 @@
 <?php declare(strict_types=1);
-
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -7,49 +6,60 @@ use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
 use PHPUnit\Framework\TestCase;
 
-/**
- *  Corresponding Class to test YourClass class
- *
- *  For each class in your library, there should be a corresponding Unit-Test for it
- *  Unit-Tests should be as much as possible independent from other test going on.
- *
- * @author yourname
- */
 class VmTest extends TestCase
 {
     private $vm;
+    /*
     private $startInstanceName;
     private $stopInstanceName;
     private $deleteInstanceName;
     private $instanceName;
     private $urlBuilder;
+    */
 
-    /**
-     * Setup test class
-     */
     public function setUp(): void
     {
         parent::setUp();
         $conf = Sut::vmConf();
-        $baseUrl = $conf['apiUrl'];
-        $customerId = $conf['customerId'];
+        /*
         $this->startInstanceName = $conf['startInstanceName'];
         $this->stopInstanceName = $conf['stopInstanceName'];
         $this->deleteInstanceName = $conf['deleteInstanceName'];
         $this->instanceName = $conf['instanceName'];
-        $this->urlBuilder = new UrlBuilder($customerId, $baseUrl);
-        $this->vm = new Vm($conf['customerApiToken'], $this->urlBuilder);
+        */
+        $baseApiUrl = $conf['baseApiUrl'];
+        $customerId = $conf['customerId'];
+        $this->vm = new Vm($conf['customerApiToken'], new UrlBuilder($customerId, $baseApiUrl));
+    }
+
+    public function testExecuteApiCall_ReturnsErrorForInvalidBaseApiUrl()
+    {
+        $baseApiUrl = Sut::vmConf('baseApiUrl');
+        $vm = new Vm('foo', $this->createMock(UrlBuilder::class));
+        $result = $vm->executeApiCall('GET', $baseApiUrl . '/non-existing/url');
+        $this->assertSame(['data' => [], 'message' => "[ERR:2] The 'status' field either empty or has invalid value", 'status' => Vm::FAIL_RESPONSE], $result);
     }
 
     public function testGetRegions()
     {
-        $regions = $this->vm->getRegions();
-        $this->markTestIncomplete();
+        $result = $this->vm->getRegions();
+        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+        $this->assertSame(Vm::SUCCESS_RESPONSE, $result['status']);
+        $this->assertSame([
+            'Name' => 'europe-west3',
+            'Town' => 'Germany, Frankfurt',
+            'Continent' => 'Europe',
+        ], $result['data']['europe-west3']);
     }
 
-    /**
-     * Test create instance
-     */
+    public function testGetRecordings()
+    {
+        $result = $this->vm->getRecordings();
+        $this->assertSame(VM::SUCCESS_RESPONSE, $result['status']);
+        $this->assertIsArray($result['data']);
+    }
+/*
     public function testCreateInstance(): void
     {
         $response = $this->vm->createInstance();
@@ -57,9 +67,6 @@ class VmTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * Test start instance by name
-     */
     public function testStartInstanceByName(): void
     {
         $response = $this->vm->startInstanceByName($this->startInstanceName);
@@ -67,9 +74,6 @@ class VmTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * Test start instance by name
-     */
     public function testStopInstanceByName(): void
     {
         $response = $this->vm->stopInstanceByName($this->stopInstanceName);
@@ -77,9 +81,6 @@ class VmTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * Test start instance by name
-     */
     public function testDeleteInstanceByName(): void
     {
         $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
@@ -87,9 +88,6 @@ class VmTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * Test execute match instances list response array structure
-     */
     public function testMatchInstancesListArrayStructure(): void
     {
         $responseInstancesList = $this->vm->getInstances();
@@ -110,9 +108,6 @@ class VmTest extends TestCase
         $this->assertEquals('success', $responseInstancesList['status']);
     }
 
-    /**
-     * Test execute match instance by name response array structure
-     */
     public function testMatchInstanceByNameArrayStructure(): void
     {
         $responseInstanceByName = $this->vm->getInstanceByName($this->instanceName);
@@ -134,9 +129,6 @@ class VmTest extends TestCase
         $this->assertEquals('success', $responseInstanceByName['status']);
     }
 
-    /**
-     * Test execute match regions response array structure
-     */
     public function testMatchRegionsArrayStructure(): void
     {
         $responseRegions = $this->vm->getRegions();
@@ -155,9 +147,6 @@ class VmTest extends TestCase
         $this->assertEquals('success', $responseRegions['status']);
     }
 
-    /**
-     * Test execute match meetings response array structure
-     */
     public function testMatchMeetingsArrayStructure(): void
     {
         $responseMeetings = $this->vm->getMeetings();
@@ -181,22 +170,17 @@ class VmTest extends TestCase
         $this->assertEquals('success', $responseMeetings['status']);
     }
 
-    /**
-     * Test Execute Get Api Call
-     */
     public function testExecuteGetApiCall(): void
     {
         $response = $this->vm->executeApiCall($this->urlBuilder->buildUrl(RegionsApiRoute::LIST));
         $this->assertEquals('success', $response['status']);
     }
 
-    /**
-     * Test Execute Delete Api Call
-     */
     public function testExecuteDeleteApiCall(): void
     {
         $param['name'] = $this->deleteInstanceName;
         $response = $this->vm->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
         $this->assertEquals('success', $response['status']);
     }
+*/
 }

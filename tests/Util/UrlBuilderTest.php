@@ -7,7 +7,7 @@ class UrlBuilderTest extends TestCase
 {
     public function testBuildUrl()
     {
-        $apiServerBaseUrl = UrlBuilder::API_SERVER_BASE_URL;
+        $apiServerBaseUrl = UrlBuilder::BASE_API_URL;
         $customerId = 'someCustomerId';
         $urlBuilder = new UrlBuilder('someCustomerId', $apiServerBaseUrl);
         $params = ['myParam' => 'myVal'];
