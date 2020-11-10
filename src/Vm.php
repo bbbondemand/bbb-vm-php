@@ -60,7 +60,7 @@ class Vm
     // ------------------------------------------------------------------------
     // Remote API:
 
-    public function getRecordings()
+    public function getRecordings(): array
     {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::LIST);
         $response = $this->execGet($url);
@@ -70,7 +70,11 @@ class Vm
         return $response;
     }
 
-    public function getRecordingById(string $recordingId)
+    /**
+     * @param string $recordingId
+     * @return array
+     */
+    public function getRecordingById(string $recordingId): array
     {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
         return $this->execGet($url);
@@ -79,6 +83,12 @@ class Vm
     public function getRegions(): array
     {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
+        return $this->execGet($url);
+    }
+
+    public function getMeetings(): array
+    {
+        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
         return $this->execGet($url);
     }
 
@@ -248,10 +258,6 @@ class Vm
         return $this->execApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::STOP, $param));
     }
 
-    public function getMeetings()
-    {
-        return $this->execApiCall($this->urlBuilder->buildUrl(MeetingsApiRoute::LIST));
-    }
 
 
 }

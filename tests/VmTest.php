@@ -81,6 +81,12 @@ class VmTest extends TestCase
         $this->assertStringContainsString('unable to find recording', $result['data']);
     }
 
+    public function testGetMeetings()
+    {
+        $result = $this->vm->getMeetings();
+        $this->checkSuccessResult($result);
+        $this->markTestIncomplete();
+    }
 /*
     public function testCreateInstance(): void
     {
