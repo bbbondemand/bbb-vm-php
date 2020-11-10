@@ -32,20 +32,19 @@ class VmTest extends TestCase
         $this->vm = new Vm($conf['customerApiToken'], new UrlBuilder($customerId, $baseApiUrl));
     }
 
-    public function testExecuteApiCall_ReturnsErrorForInvalidBaseApiUrl()
+    public function testExec_ReturnsErrorForInvalidUrl()
     {
         $baseApiUrl = Sut::vmConf('baseApiUrl');
-        $vm = new Vm('foo', $this->createMock(UrlBuilder::class));
-        $result = $vm->executeApiCall('GET', $baseApiUrl . '/non-existing/url');
-        $this->assertSame(['data' => [], 'message' => "[ERR:2] The 'status' field either empty or has invalid value", 'status' => Vm::FAIL_RESPONSE], $result);
+        $result = $this->vm->exec('GET', $baseApiUrl . '/non-existing/url');
+        $this->checkFailResult($result, 403);
+        $this->assertSame('[ERR:4] Forbidden', $result['data']);
     }
 
     public function testGetRegions()
     {
         $result = $this->vm->getRegions();
         $this->assertIsArray($result);
-        $this->assertCount(2, $result);
-        $this->assertSame(Vm::SUCCESS_RESPONSE, $result['status']);
+        $this->checkSuccessResult($result);
         $this->assertSame([
             'Name' => 'europe-west3',
             'Town' => 'Germany, Frankfurt',
@@ -56,36 +55,55 @@ class VmTest extends TestCase
     public function testGetRecordings()
     {
         $result = $this->vm->getRecordings();
-        $this->assertSame(VM::SUCCESS_RESPONSE, $result['status']);
+        $this->checkSuccessResult($result);
         $this->assertIsArray($result['data']);
+        $this->markTestIncomplete();
     }
+
+    public function testGetRecordingById_InvalidIdFormat()
+    {
+        $result = $this->vm->getRecordingById('someIdOfMissingRecording');
+        $this->checkFailResult($result, 400);
+        $this->assertSame("invalid recording ID: must be in lower case", $result['data']);
+    }
+
+    public function testGetRecordingById_InvalidIdLength()
+    {
+        $result = $this->vm->getRecordingById('someidofmissingrecording');
+        $this->checkFailResult($result, 400);
+        $this->assertSame("invalid recording ID: the length must be exactly 54", $result['data']);
+    }
+
+    public function testGetRecordingById_IdOfNonExistingRecording()
+    {
+        $result = $this->vm->getRecordingById("testtesttesttesttesttesttesttesttesttesttesttesttestte");
+        $this->checkFailResult($result, 400);
+        $this->assertStringContainsString('unable to find recording', $result['data']);
+    }
+
 /*
     public function testCreateInstance(): void
     {
         $response = $this->vm->createInstance();
         $this->assertEquals('success', $response['status']);
-        $this->assertTrue(true);
     }
 
     public function testStartInstanceByName(): void
     {
         $response = $this->vm->startInstanceByName($this->startInstanceName);
         $this->assertEquals('success', $response['status']);
-        $this->assertTrue(true);
     }
 
     public function testStopInstanceByName(): void
     {
         $response = $this->vm->stopInstanceByName($this->stopInstanceName);
         $this->assertEquals('success', $response['status']);
-        $this->assertTrue(true);
     }
 
     public function testDeleteInstanceByName(): void
     {
         $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
         $this->assertEquals('success', $response['status']);
-        $this->assertTrue(true);
     }
 
     public function testMatchInstancesListArrayStructure(): void
@@ -170,17 +188,43 @@ class VmTest extends TestCase
         $this->assertEquals('success', $responseMeetings['status']);
     }
 
-    public function testExecuteGetApiCall(): void
+    public function testExecGetApiCall(): void
     {
-        $response = $this->vm->executeApiCall($this->urlBuilder->buildUrl(RegionsApiRoute::LIST));
+        $response = $this->vm->execApiCall($this->urlBuilder->buildUrl(RegionsApiRoute::LIST));
         $this->assertEquals('success', $response['status']);
     }
 
-    public function testExecuteDeleteApiCall(): void
+    public function testExecDeleteApiCall(): void
     {
         $param['name'] = $this->deleteInstanceName;
-        $response = $this->vm->executeApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
+        $response = $this->vm->execApiCall($this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $param), 'DELETE');
         $this->assertEquals('success', $response['status']);
     }
 */
+    /**
+     * Makes common checks for the successful result
+     * @param array $result
+     * @return array
+     */
+    private function checkSuccessResult(array $result)
+    {
+        $this->assertSame(200, $this->vm->getResponse()->getStatusCode());
+        $this->assertCount(2, $result);
+        $this->assertSame(Vm::SUCCESS_RESPONSE, $result['status']);
+        return $result;
+    }
+
+    /**
+     * Makes common checks for the error result
+     * @param array $result
+     * @param int $expectedStatusCode
+     * @return array
+     */
+    private function checkFailResult(array $result, int $expectedStatusCode)
+    {
+        $this->assertSame($expectedStatusCode, $this->vm->getResponse()->getStatusCode());
+        $this->assertCount(2, $result);
+        $this->assertSame(Vm::FAIL_RESPONSE, $result['status']);
+        return $result;
+    }
 }
