@@ -19,6 +19,6 @@ namespace BBBondemand\Enums;
  */
 class RecordingsApiRoute
 {
-    const LIST = 'recordings';
-    const GET  = 'recordings/{recordingID}';
+    public const LIST = 'recordings';
+    public const GET  = 'recordings/{recordingID}';
 }

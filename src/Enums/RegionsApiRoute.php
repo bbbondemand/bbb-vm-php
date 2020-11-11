@@ -19,5 +19,5 @@ namespace BBBondemand\Enums;
  */
 class RegionsApiRoute
 {
-    const LIST = 'regions';
+    public const LIST = 'regions';
 }

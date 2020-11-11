@@ -47,17 +47,17 @@ class UrlBuilder
      * Builds an API method URL that includes the url + params.
      *
      * @param string $route
-     * @param array|null  $params
-     * @param string $queryString
+     * @param array|null  $pathParams
+     * @param string|null $queryString
      *
      * @return string
      */
-    public function buildUrl(string $route, array $params = null, string $queryString = ''): string
+    public function buildUrl(string $route, array $pathParams = null, string $queryString = null): string
     {
-        $params = (array) $params;
+        $pathParams = (array) $pathParams;
         preg_match('#\{(.*?)\}#', $route, $match);
         $variable    = $match[1] ?? '';
-        $route       = empty($params) ? $route : ($variable != '' ? str_replace("{" . $variable . "}", $params[$variable], $route) : $route);
+        $route       = empty($pathParams) ? $route : ($variable != '' ? str_replace("{" . $variable . "}", $pathParams[$variable], $route) : $route);
         $queryString = !empty($queryString) ? '?' . $queryString : '';
 
         return $this->baseApiUrl . '/' . $this->customerId . '/vm/' . $route . $queryString;

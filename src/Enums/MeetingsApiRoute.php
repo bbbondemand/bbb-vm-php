@@ -19,5 +19,5 @@ namespace BBBondemand\Enums;
  */
 class MeetingsApiRoute
 {
-    const LIST = 'meetings';
+    public const LIST = 'meetings';
 }
