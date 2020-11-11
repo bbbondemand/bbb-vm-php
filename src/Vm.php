@@ -8,7 +8,6 @@
  *
  * @author Richard Phillips
  */
-
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -31,6 +30,11 @@ class Vm
     public const FAIL_RESPONSE = 'fail'; // invalid format or validation check
     public const ERR_RESPONSE = 'error'; // internal error like exception
 
+    public const UNKNOWN_ERR = 1;
+    public const INVALID_RESPONSE_STATUS_ERR = 2;
+    public const INTERNAL_ERR = 3;
+    public const INVALID_REQUEST = 4;
+
     /**
      * @var string
      */
@@ -40,17 +44,16 @@ class Vm
      * @var UrlBuilder
      */
     protected $urlBuilder;
+
     /**
      * @var
      */
     private $httpClient;
 
+    /**
+     * @var \Psr\Http\Message\ResponseInterface
+     */
     private $response;
-
-    private const UNKNOWN_ERR = 1;
-    private const INVALID_RESPONSE_STATUS_ERR = 2;
-    private const INTERNAL_ERR = 3;
-    private const INVALID_REQUEST = 4;
 
     public function __construct(string $customerApiToken, UrlBuilder $urlBuilder)
     {
@@ -286,16 +289,15 @@ class Vm
      */
     private function checkInstanceName(string $instanceName): void
     {
-        if (preg_match('~[A-Z]~s', $instanceName)) {
-            throw new InvalidArgumentException("invalid instance name: must be in lower case");
-        }
         if ('' === $instanceName) {
-            throw new InvalidArgumentException("instance name can't be blank");
+            throw new InvalidArgumentException("Invalid instance name: can't be blank");
+        }
+        if (preg_match('~[A-Z]~s', $instanceName)) {
+            throw new InvalidArgumentException("Invalid instance name: must be in lower case");
         }
         if (strlen($instanceName) < 19 || strlen($instanceName) > 22) {
-            throw new InvalidArgumentException("invalid instance name: the length must be between 19 and 22");
+            throw new InvalidArgumentException("Invalid instance name: the length must be between 19 and 22");
         }
-        // todo: check case
     }
 
     /**
@@ -304,6 +306,14 @@ class Vm
      */
     private function checkRecordingId(string $recordingId)
     {
-        // todo
+        if ('' === $recordingId) {
+            throw new InvalidArgumentException("Invalid recording ID: can't be blank");
+        }
+        if (preg_match('~[A-Z]~s', $recordingId)) {
+            throw new InvalidArgumentException("Invalid recording ID: must be in lower case");
+        }
+        if (strlen($recordingId) !== 54) {
+            throw new InvalidArgumentException("Invalid recording ID: the length must be exactly 54");
+        }
     }
 }

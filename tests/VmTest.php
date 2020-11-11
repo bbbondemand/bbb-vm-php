@@ -2,6 +2,7 @@
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
+use BBBondemand\Enums\RecordingsApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
 use BBBondemand\Util\UrlBuilder;
 use InvalidArgumentException;
@@ -42,7 +43,7 @@ class VmTest extends TestCase
         $baseApiUrl = Sut::vmConf('baseApiUrl');
         $result = $this->vm->exec('GET', $baseApiUrl . '/non-existing/url');
         $this->checkFailResult($result, 403);
-        $this->assertSame('[ERR:4] Forbidden', $result['data']);
+        $this->assertSame('[ERR:' . Vm::INVALID_REQUEST . '] Forbidden', $result['data']);
     }
 
     public function testExec_SuccessResult()
@@ -62,18 +63,18 @@ class VmTest extends TestCase
             'Town' => 'Germany, Frankfurt',
             'Continent' => 'Europe',
         ], $result['data']['europe-west3']);
-/*
-        $firstItem = reset($responseRegions['data']);
-        if (isset($firstItem)) {
-            $this->assertContains('Name', $firstItem);
-            $this->assertContains('Town', $firstItem);
-            $this->assertContains('Continent', $firstItem);
-            $this->assertContains('Zones', $firstItem);
-            $this->assertContains('Capability', $firstItem);
-            $this->assertContains('Active', $firstItem);
-            $this->assertContains('Proximate', $firstItem);
-        }
- */
+        /*
+                $firstItem = reset($responseRegions['data']);
+                if (isset($firstItem)) {
+                    $this->assertContains('Name', $firstItem);
+                    $this->assertContains('Town', $firstItem);
+                    $this->assertContains('Continent', $firstItem);
+                    $this->assertContains('Zones', $firstItem);
+                    $this->assertContains('Capability', $firstItem);
+                    $this->assertContains('Active', $firstItem);
+                    $this->assertContains('Proximate', $firstItem);
+                }
+         */
     }
 
     public function testGetRecordings()
@@ -84,20 +85,6 @@ class VmTest extends TestCase
         $this->markTestIncomplete();
     }
 
-    public function testGetRecordingById_InvalidIdCase()
-    {
-        $result = $this->vm->getRecordingById('someIdOfMissingRecording');
-        $this->checkFailResult($result, 400);
-        $this->assertSame("invalid recording ID: must be in lower case", $result['data']);
-    }
-
-    public function testGetRecordingById_InvalidIdLength()
-    {
-        $result = $this->vm->getRecordingById('someidofmissingrecording');
-        $this->checkFailResult($result, 400);
-        $this->assertSame("invalid recording ID: the length must be exactly 54", $result['data']);
-    }
-
     public function testGetRecordingById_NonExistingRecording()
     {
         $result = $this->vm->getRecordingById("testtesttesttesttesttesttesttesttesttesttesttesttestte");
@@ -105,7 +92,67 @@ class VmTest extends TestCase
         $this->assertStringContainsString('unable to find recording', $result['data']);
     }
 
-    public function testGerRecordingById_ValidRecording()
+    public function data_testGetRecordingById_ClientSideChecks()
+    {
+        yield [
+            "Invalid recording ID: can't be blank",
+            '',
+        ];
+        yield [
+            "Invalid recording ID: must be in lower case",
+            'someIdOfRecording',
+        ];
+        yield [
+            "Invalid recording ID: the length must be exactly 54",
+            'someidofrecording',
+        ];
+    }
+
+    /**
+     *
+     * @dataProvider data_testGetRecordingById_ClientSideChecks
+     * @param string $expectedMessage
+     * @param string $recordingId
+     */
+    public function testGetRecordingById_ClientSideChecks(string $expectedMessage, string $recordingId)
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedMessage);
+        $this->vm->getRecordingById($recordingId);
+    }
+
+    public function data_testGetRecordingById_ServerSideChecks()
+    {
+        /* todo
+        yield [
+            "recording ID can't be blank",
+            '',
+        ];
+        */
+        yield [
+            "invalid recording ID: must be in lower case",
+            'someIdOfRecording',
+        ];
+        yield [
+            "invalid recording ID: the length must be exactly 54",
+            'someidofrecording',
+        ];
+    }
+
+    /**
+     * @dataProvider data_testGetRecordingById_ServerSideChecks
+     * @param string $expectedMessage
+     * @param string $recordingId
+     */
+    public function testGetRecordingById_ServerSideChecks(string $expectedMessage, string $recordingId)
+    {
+        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
+        $result = $this->vm->execGet($url);
+        $this->checkFailResult($result, 400);
+        $this->assertSame($expectedMessage, $result['data']);
+    }
+
+    public function testGetRecordingById_ValidRecordingId()
     {
         $this->markTestIncomplete();
     }
@@ -114,23 +161,23 @@ class VmTest extends TestCase
     {
         $result = $this->vm->getMeetings();
         $this->checkSuccessResult($result);
-/*
-        if (isset($responseMeetings['data'][0])) {
-            $this->assertContains('ReturnCode', $responseMeetings['data'][0]);
-            $this->assertContains('MeetingName', $responseMeetings['data'][0]);
-            $this->assertContains('MeetingID', $responseMeetings['data'][0]);
-            $this->assertContains('InternalMeetingID', $responseMeetings['data'][0]);
-            $this->assertContains('CreateTime', $responseMeetings['data'][0]);
-            $this->assertContains('CreateDate', $responseMeetings['data'][0]);
-            $this->assertContains('VoiceBridge', $responseMeetings['data'][0]);
-            $this->assertContains('DialNumber', $responseMeetings['data'][0]);
-            $this->assertContains('AttendeePW', $responseMeetings['data'][0]);
-            $this->assertContains('ModeratorPW', $responseMeetings['data'][0]);
-            $this->assertContains('Recording', $responseMeetings['data'][0]);
-            $this->assertContains('StartTime', $responseMeetings['data'][0]);
-            $this->assertContains('MaxUsers', $responseMeetings['data'][0]);
-        }
- */
+        /*
+                if (isset($responseMeetings['data'][0])) {
+                    $this->assertContains('ReturnCode', $responseMeetings['data'][0]);
+                    $this->assertContains('MeetingName', $responseMeetings['data'][0]);
+                    $this->assertContains('MeetingID', $responseMeetings['data'][0]);
+                    $this->assertContains('InternalMeetingID', $responseMeetings['data'][0]);
+                    $this->assertContains('CreateTime', $responseMeetings['data'][0]);
+                    $this->assertContains('CreateDate', $responseMeetings['data'][0]);
+                    $this->assertContains('VoiceBridge', $responseMeetings['data'][0]);
+                    $this->assertContains('DialNumber', $responseMeetings['data'][0]);
+                    $this->assertContains('AttendeePW', $responseMeetings['data'][0]);
+                    $this->assertContains('ModeratorPW', $responseMeetings['data'][0]);
+                    $this->assertContains('Recording', $responseMeetings['data'][0]);
+                    $this->assertContains('StartTime', $responseMeetings['data'][0]);
+                    $this->assertContains('MaxUsers', $responseMeetings['data'][0]);
+                }
+         */
         $this->markTestIncomplete();
     }
 
@@ -185,37 +232,37 @@ class VmTest extends TestCase
 
         //$this->vm->createInstance([])
 
-/*
-        $response = $this->vm->createInstance();
-        $this->assertEquals('success', $response['status']);
+        /*
+                $response = $this->vm->createInstance();
+                $this->assertEquals('success', $response['status']);
 
-        // todo
-        $this->vm->createInstance();
+                // todo
+                $this->vm->createInstance();
 
-        // todo
-        $this->vm->getInstanceByName($instanceName);
-/*
-        $this->assertEquals('success', $responseInstanceByName['status']);
-        if (isset($responseInstanceByName['data'])) {
-            $this->assertContains('Name', $responseInstanceByName['data']);
-            $this->assertContains('Status', $responseInstanceByName['data']);
-            $this->assertContains('Started', $responseInstanceByName['data']);
-            $this->assertContains('Finished', $responseInstanceByName['data']);
-            $this->assertContains('Seconds', $responseInstanceByName['data']);
-            $this->assertContains('Hostname', $responseInstanceByName['data']);
-            $this->assertContains('Secret', $responseInstanceByName['data']);
-            $this->assertContains('Region', $responseInstanceByName['data']);
-            $this->assertContains('MachineSize', $responseInstanceByName['data']);
-            $this->assertContains('Turn', $responseInstanceByName['data']);
-        }
- */
+                // todo
+                $this->vm->getInstanceByName($instanceName);
+        /*
+                $this->assertEquals('success', $responseInstanceByName['status']);
+                if (isset($responseInstanceByName['data'])) {
+                    $this->assertContains('Name', $responseInstanceByName['data']);
+                    $this->assertContains('Status', $responseInstanceByName['data']);
+                    $this->assertContains('Started', $responseInstanceByName['data']);
+                    $this->assertContains('Finished', $responseInstanceByName['data']);
+                    $this->assertContains('Seconds', $responseInstanceByName['data']);
+                    $this->assertContains('Hostname', $responseInstanceByName['data']);
+                    $this->assertContains('Secret', $responseInstanceByName['data']);
+                    $this->assertContains('Region', $responseInstanceByName['data']);
+                    $this->assertContains('MachineSize', $responseInstanceByName['data']);
+                    $this->assertContains('Turn', $responseInstanceByName['data']);
+                }
+         */
 
         // todo
         //$this->vm->deleteInstanceByName();
-/*
- *         $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
-        $this->assertEquals('success', $response['status']);
- */
+        /*
+         *         $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
+                $this->assertEquals('success', $response['status']);
+         */
 
         // todo
         //$this->vm->startInstanceByName();
@@ -232,18 +279,18 @@ class VmTest extends TestCase
         */
     }
 
-    public function data_testInstanceNameChecks_ClientSideChecks()
+    public function data_testGetInstanceByName_ClientSideChecks()
     {
         yield [
-            "instance name can't be blank",
+            "Invalid instance name: can't be blank",
             '',
         ];
         yield [
-            'invalid instance name: must be in lower case',
+            'Invalid instance name: must be in lower case',
             'fooBar',
         ];
         yield [
-            'invalid instance name: the length must be between 19 and 22',
+            'Invalid instance name: the length must be between 19 and 22',
             'foobar',
         ];
     }
@@ -251,23 +298,23 @@ class VmTest extends TestCase
     /**
      * @param string $expectedMessage
      * @param string $instanceName
-     * @dataProvider data_testInstanceNameChecks_ClientSideChecks
+     * @dataProvider data_testGetInstanceByName_ClientSideChecks
      */
-    public function testInstanceNameChecks_ClientSideChecks(string $expectedMessage, string $instanceName)
+    public function testGetInstanceByName_ClientSideChecks(string $expectedMessage, string $instanceName)
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($expectedMessage);
         $this->vm->getInstanceByName($instanceName);
     }
 
-    public function data_testInstanceNameChecks_ServerSideChecks()
+    public function data_testGetInstanceByName_ServerSideChecks()
     {
-/*
-        todo
-        yield [
-            "instance name can't be blank",
-            '',
-        ];*/
+        /*
+                todo
+                yield [
+                    "instance name can't be blank",
+                    '',
+                ];*/
         yield [
             'invalid instance name: must be in lower case',
             'fooBar',
@@ -285,9 +332,9 @@ class VmTest extends TestCase
     /**
      * @param string $expectedMessage
      * @param string $instanceName
-     * @dataProvider data_testInstanceNameChecks_ServerSideChecks
+     * @dataProvider data_testGetInstanceByName_ServerSideChecks
      */
-    public function testInstanceNameChecks_ServerSideChecks(string $expectedMessage, string $instanceName)
+    public function testGetInstanceByName_ServerSideChecks(string $expectedMessage, string $instanceName)
     {
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, ['name' => $instanceName]);
         $result = $this->vm->execGet($url);
