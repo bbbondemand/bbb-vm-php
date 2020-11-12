@@ -211,11 +211,11 @@ function main(): void
             waitInstanceStatus($vm, $instanceName, DELETED_STATUS, $indent + 1);
         }, null, $indent);
 
-        $instanceName = test("Vm::createInstance()", function () use ($indent, $vm) {
+        $instanceName = test("Vm::createInstance() without ManagedRecordings and without Tags", function () use ($indent, $vm) {
             $result = $vm->createInstance();
             checkCreationResult($result);
             $instanceName = $result['data']['Name'];
-            waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
+            waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
             return $instanceName;
         }, null, $indent);
 
