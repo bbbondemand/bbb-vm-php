@@ -15,11 +15,12 @@
     ],
     "type": "project",
     "require": {
-		"php": ">=7.1",
-        "guzzlehttp/guzzle": "^6.3"
+        "php": ">=7.1",
+        "guzzlehttp/guzzle": "^6.3",
+        "ext-json": "*"
     },
     "require-dev": {
-		"phpunit/phpunit": "6.*",
+        "phpunit/phpunit": "9.*",
         "roave/security-advisories": "dev-master",
         "barryvdh/laravel-ide-helper": "^2.6"
     },
@@ -28,13 +29,18 @@
             "BBBondemand\\": "src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "BBBondemand\\": "tests"
+        }
+    },
     "extra": {
         "laravel": {
             "providers": [
                 "BBBondemand\\BBBondemandServiceProvider"
             ],
             "aliases": {
-                "BBBondemand": "BBBondemand\\Facades\\VM"
+                "BBBondemand": "BBBondemand\\Facades\\Vm"
             }
         }
     }
