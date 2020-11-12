@@ -26,9 +26,9 @@ use function json_decode;
 
 class Vm
 {
-    public const SUCCESS_RESPONSE = 'success';
-    public const FAIL_RESPONSE = 'fail'; // invalid format or validation check
-    public const ERR_RESPONSE = 'error'; // internal error like exception
+    public const SUCCESS_STATUS = 'success';
+    public const FAIL_STATUS = 'fail'; // invalid format or validation check
+    public const ERR_STATUS = 'error'; // internal error like exception
 
     public const UNKNOWN_ERR = 1;
     public const INVALID_RESPONSE_STATUS_ERR = 2;
@@ -51,7 +51,7 @@ class Vm
     private $httpClient;
 
     /**
-     * @var \Psr\Http\Message\ResponseInterface
+     * @var ResponseInterface
      */
     private $response;
 
@@ -87,7 +87,7 @@ class Vm
     {
         $params = array_merge(["MachineSize" => "small"], (array)$params);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::CREATE);
-        return $this->execPost($url, $params);
+        return $this->normalizeResult($this->execPost($url, $params), false);
     }
 
     public function getInstanceByName(string $instanceName): array
@@ -97,7 +97,7 @@ class Vm
             'name' => $instanceName,
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, $pathParams);
-        return $this->execGet($url);
+        return $this->normalizeResult($this->execGet($url), false);
     }
 
     public function deleteInstanceByName(string $instanceName): array
@@ -107,7 +107,7 @@ class Vm
             'name' => $instanceName,
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $pathParams);
-        return $this->execDelete($url);
+        return $this->normalizeResult($this->execDelete($url), false);
     }
 
     public function startInstanceByName(string $instanceName): array
@@ -117,7 +117,7 @@ class Vm
             'name' => $instanceName,
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START, $pathParams);
-        return $this->execGet($url);
+        return $this->normalizeResult($this->execGet($url), false);
     }
 
     public function stopInstanceByName(string $instanceName): array
@@ -127,7 +127,13 @@ class Vm
             'name' => $instanceName
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP, $pathParams);
-        return $this->execGet($url);
+        return $this->normalizeResult($this->execGet($url), false);
+    }
+
+    public function getMeetings(): array
+    {
+        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
+        return $this->normalizeResult($this->execGet($url), true);
     }
 
     public function getRecordings(): array
@@ -137,27 +143,17 @@ class Vm
         return $this->normalizeResult($result, true);
     }
 
-    /**
-     * @param string $recordingId
-     * @return array
-     */
     public function getRecordingById(string $recordingId): array
     {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
-        return $this->execGet($url);
+        return $this->normalizeResult($this->execGet($url), false);
     }
 
     public function getRegions(): array
     {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        return $this->execGet($url);
-    }
-
-    public function getMeetings(): array
-    {
-        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
-        return $this->execGet($url);
+        return $this->normalizeResult($this->execGet($url), true);
     }
 
     // ------------------------------------------------------------------------
@@ -247,23 +243,23 @@ class Vm
         if ($response) {
             $contents = $response->getBody()->getContents();
             if (!$contents) {
-                return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_RESPONSE);
+                return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_STATUS);
             }
             $responsePayload = json_decode($contents, true);
             if (null === $responsePayload && $response->getStatusCode() === 403) {
-                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden', self::FAIL_RESPONSE);
+                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden', self::FAIL_STATUS);
             }
-            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_RESPONSE && $responsePayload['status'] !== self::FAIL_RESPONSE && $responsePayload['status'] !== self::ERR_RESPONSE)) {
-                return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value", self::ERR_RESPONSE);
+            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_STATUS && $responsePayload['status'] !== self::FAIL_STATUS && $responsePayload['status'] !== self::ERR_STATUS)) {
+                return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value", self::ERR_STATUS);
             }
             if (!$ex) {
                 return $responsePayload; // it is a valid response, return it as is.
             }
-            if ($responsePayload['status'] === self::ERR_RESPONSE || $responsePayload['status'] === self::FAIL_RESPONSE) {
+            if ($responsePayload['status'] === self::ERR_STATUS || $responsePayload['status'] === self::FAIL_STATUS) {
                 return $responsePayload;
             }
         }
-        return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_RESPONSE);
+        return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_STATUS);
     }
 
     private function mkErrResult(int $errCode, $message, $status): array
@@ -277,8 +273,8 @@ class Vm
 
     private function normalizeResult(array $result, bool $dataIsCollection): array
     {
-        if ($dataIsCollection && array_key_exists('data', $result) && $result['data'] === null) {
-            $result['data'] = [];
+        if (array_key_exists('data', $result) && ($result['data'] === null || $result['data'] === '')) {
+            $result['data'] = $dataIsCollection ? [] : null;
         }
         return $result;
     }

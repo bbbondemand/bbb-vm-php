@@ -14,9 +14,9 @@ class Sut
         static $conf;
         if (!$conf) {
             $conf = [
-                 'customerId' => self::readEnvVar('VM_CUSTOMER_ID'),
-                 'customerApiToken' => self::readEnvVar('VM_CUSTOMER_API_TOKEN'),
-                 'baseApiUrl' => self::readEnvVar('VM_BASE_API_URL'),
+                'customerId' => self::readEnvVar('VM_CUSTOMER_ID'),
+                'customerApiToken' => self::readEnvVar('VM_CUSTOMER_API_TOKEN'),
+                'baseApiUrl' => self::readEnvVar('VM_BASE_API_URL'),
             ];
         }
         return null !== $name ? $conf[$name] : $conf;
@@ -26,7 +26,8 @@ class Sut
      * @param string $name
      * @return array|string
      */
-    private static function readEnvVar(string $name) {
+    private static function readEnvVar(string $name)
+    {
         $val = getenv($name);
         if (!$val) {
             throw new RuntimeException("The environment variable $name is not set");

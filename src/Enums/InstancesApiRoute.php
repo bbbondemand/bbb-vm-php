@@ -19,10 +19,10 @@ namespace BBBondemand\Enums;
  */
 class InstancesApiRoute
 {
-    public const LIST   = 'instances';
+    public const LIST = 'instances';
     public const CREATE = 'instances';
-    public const GET    = 'instances/{name}';
+    public const GET = 'instances/{name}';
     public const DELETE = 'instances/{name}';
-    public const START  = 'instances/{name}/start';
-    public const STOP   = 'instances/{name}/stop';
+    public const START = 'instances/{name}/start';
+    public const STOP = 'instances/{name}/stop';
 }

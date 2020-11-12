@@ -127,6 +127,18 @@ function checkInstanceStatus(Vm $vm, string $instanceName, string $expectedStatu
     assert($vm->getInstanceByName($instanceName)['data']['Status'] === $expectedStatus, "Precondition: instance '$instanceName' has '$expectedStatus' Status");
 }
 
+function checkCreationResult(array $creationResult): array
+{
+    checkSuccessResult($creationResult);
+    $creationData = $creationResult['data'];
+    assert(4, $creationData);
+    assert(strlen($creationData['Name']) > 0);
+    assert(strlen($creationData['Secret']) > 0);
+    assert(strlen($creationData['Host']) > 0);
+    assert(strlen($creationData['TestURL']) > 0);
+    return $creationData;
+}
+
 const AVAILABLE_STATUS = 'AVAILABLE';
 const STOPPED_STATUS = 'STOPPED';
 const DELETED_STATUS = 'DELETED';
@@ -135,127 +147,134 @@ function main(): void
 {
     $vm = mkVm();
 
-    writeLnIndent("Total instances: " . array_reduce($vm->getInstances()['data'], function ($acc, $_) {
+    register_shutdown_function(function () use ($vm) {
+        writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
+    });
+
+    writeLnIndent("Total instances: " . array_reduce($vm->getInstances()['data'], function ($acc) {
             $acc += 1;
             return $acc;
         }, 0), 0);
     writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
 
-    try {
-        test("Vm::getRegions()", function () use ($vm) {
-            $result = $vm->getRegions();
-            checkSuccessResult($result);
-            assert([
-                    'Name' => 'europe-west3',
-                    'Town' => 'Germany, Frankfurt',
-                    'Continent' => 'Europe',
-                ] == $result['data']['europe-west3']);
-            /* todo
-            $this->assertContains('Name', $firstItem);
-            $this->assertContains('Town', $firstItem);
-            $this->assertContains('Continent', $firstItem);
-            $this->assertContains('Zones', $firstItem);
-            $this->assertContains('Capability', $firstItem);
-            $this->assertContains('Active', $firstItem);
-            $this->assertContains('Proximate', $firstItem);
-            */
-        });
+    test("Vm::getMeetings(), Vm::getRecordings(), Vm::getRecordingById(), Vm::createInstance() with ManagedRecordings and Tags", function () use ($vm) {
+        // todo: always empty result
+        //d($vm->getMeetings(), $vm->getRecordings());
 
-        test("Vm::getInstances(), Vm::createInstance(), Vm::getInstanceByName(), Vm::deleteInstanceByName(), Vm::startInstanceByName(), Vm::stopInstanceByName()", function () use ($vm) {
-            $indent = 1;
-
-            test("Vm::deleteInstanceByName(): delete " . STOPPED_STATUS . " instance", function () use ($indent, $vm) {
-                $instanceName = $vm->createInstance()['data']['Name'];
-                waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
-                $vm->stopInstanceByName($instanceName);
-                waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
-                $result = $vm->deleteInstanceByName($instanceName);
-                checkSuccessResult($result);
-                assert(null === $result['data']);
-                waitInstanceStatus($vm, $instanceName, DELETED_STATUS, $indent + 1);
-            }, null, $indent);
-
-            $instanceName = test("Vm::createInstance()", function () use ($indent, $vm) {
-                $result = $vm->createInstance();
-                checkSuccessResult($result);
-
-                $creationData = $result['data'];
-                assert(4, $creationData);
-                assert(strlen($creationData['Name']) > 0);
-                assert(strlen($creationData['Secret']) > 0);
-                assert(strlen($creationData['Host']) > 0);
-                assert(strlen($creationData['TestURL']) > 0);
-
-                $instanceName = $creationData['Name'];
-
-                waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
-
-                return $instanceName;
-            }, null, $indent);
-
-            test("Vm::getInstanceByName()", function () use ($vm, $instanceName) {
-                checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
-                $result = $vm->getInstanceByName($instanceName);
-                checkSuccessResult($result);
-                checkInstanceDetails($result['data']);
-            }, null, $indent);
-
-            test("Vm::getInstances()", function () use ($vm) {
-                $result = $vm->getInstances();
-                checkSuccessResult($result);
-                assert(count($result['data']) > 0);
-                foreach ($result['data'] as $instanceDetails) {
-                    checkInstanceDetails($instanceDetails);
-                }
-            }, null, $indent);
-
-            test("Vm::stopInstanceByName(): stop " . AVAILABLE_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
-                checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
-                $result = $vm->stopInstanceByName($instanceName);
-                checkSuccessResult($result);
-                assert(null === $result['data']);
-                waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
-            }, null, $indent);
-
-            test("Vm::stopInstanceByName(): stop " . STOPPED_STATUS . " instance", function () use ($vm, $instanceName) {
-                checkInstanceStatus($vm, $instanceName, STOPPED_STATUS);
-                $result = $vm->stopInstanceByName($instanceName);
-                checkFailResult($result);
-                assert('this instance was found to be already stopped' === $result['data']);
-                checkInstanceStatus($vm, $instanceName, STOPPED_STATUS); // should be not changed
-            }, null, $indent);
-
-            test("Vm::startInstanceByName(): start " . STOPPED_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
-                checkInstanceStatus($vm, $instanceName, STOPPED_STATUS);
-                $result = $vm->startInstanceByName($instanceName);
-                checkSuccessResult($result);
-                assert(null === $result['data']);
-                waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
-            }, null, $indent);
-
-            test("Vm::startInstanceByName(): start " . AVAILABLE_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
-                waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
-                $result = $vm->startInstanceByName($instanceName);
-                // todo: fix message "unable to start the stopped instance"
-                checkFailResult($result);
-                checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS); // should be not changed
-            }, null, $indent);
-
-            test("Vm::deleteInstanceByName(): delete " . AVAILABLE_STATUS . " instance", function () use ($indent, $instanceName, $vm) {
-                checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
-                $result = $vm->deleteInstanceByName($instanceName);
-                checkSuccessResult($result);
-                assert(null === $result['data']);
-                waitInstanceStatus($vm, $instanceName, DELETED_STATUS, $indent + 1);
-            }, null, $indent);
+        // On Demand cloud meetings
+        $creationResult = $vm->createInstance([
+            'ManageRecordings' => true,
+            'Tags' => 'foo,bar',
             /*
-            todo:
-                * ManageRecordings - boolean - if true, includes only instances created with managedRecordings=true
-            */
-        });
-    } finally {
-        writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
-    }
+                Host - string - fully qualified domain of the instance
+                Name - string - unique name for the instance, used by other API methods
+                Secret - string - unique random secret to interact with the running BBB instance
+                TestUrl - string - a link to an API testing website which makes it easy for developers to check and test the BBB instance. Ignore if not useful to you.
+
+             */
+        ]);
+        checkCreationResult($creationResult);
+
+        waitInstanceStatus($vm, $creationResult['data']['Name'], AVAILABLE_STATUS);
+    });
+
+    test("Vm::getRegions()", function () use ($vm) {
+        $result = $vm->getRegions();
+        checkSuccessResult($result);
+        assert([
+                'Name' => 'europe-west3',
+                'Town' => 'Germany, Frankfurt',
+                'Continent' => 'Europe',
+            ] == $result['data']['europe-west3']);
+        /* todo
+        $this->assertContains('Name', $firstItem);
+        $this->assertContains('Town', $firstItem);
+        $this->assertContains('Continent', $firstItem);
+        $this->assertContains('Zones', $firstItem);
+        $this->assertContains('Capability', $firstItem);
+        $this->assertContains('Active', $firstItem);
+        $this->assertContains('Proximate', $firstItem);
+        */
+    });
+
+    test("Vm::getInstances(), Vm::createInstance() without ManagedRecordings and without Tags, Vm::getInstanceByName(), Vm::deleteInstanceByName(), Vm::startInstanceByName(), Vm::stopInstanceByName()", function () use ($vm) {
+        $indent = 1;
+
+        test("Vm::deleteInstanceByName(): delete " . STOPPED_STATUS . " instance", function () use ($indent, $vm) {
+            $instanceName = $vm->createInstance()['data']['Name'];
+            waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
+            $vm->stopInstanceByName($instanceName);
+            waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
+            $result = $vm->deleteInstanceByName($instanceName);
+            checkSuccessResult($result);
+            assert(null === $result['data']);
+            waitInstanceStatus($vm, $instanceName, DELETED_STATUS, $indent + 1);
+        }, null, $indent);
+
+        $instanceName = test("Vm::createInstance()", function () use ($indent, $vm) {
+            $result = $vm->createInstance();
+            checkCreationResult($result);
+            $instanceName = $result['data']['Name'];
+            waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
+            return $instanceName;
+        }, null, $indent);
+
+        test("Vm::getInstanceByName()", function () use ($vm, $instanceName) {
+            checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
+            $result = $vm->getInstanceByName($instanceName);
+            checkSuccessResult($result);
+            checkInstanceDetails($result['data']);
+        }, null, $indent);
+
+        test("Vm::getInstances()", function () use ($vm) {
+            $result = $vm->getInstances();
+            checkSuccessResult($result);
+            assert(count($result['data']) > 0);
+            foreach ($result['data'] as $instanceDetails) {
+                checkInstanceDetails($instanceDetails);
+            }
+        }, null, $indent);
+
+        test("Vm::stopInstanceByName(): stop " . AVAILABLE_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
+            checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
+            $result = $vm->stopInstanceByName($instanceName);
+            checkSuccessResult($result);
+            assert(null === $result['data']);
+            waitInstanceStatus($vm, $instanceName, STOPPED_STATUS, $indent + 1);
+        }, null, $indent);
+
+        test("Vm::stopInstanceByName(): stop " . STOPPED_STATUS . " instance", function () use ($vm, $instanceName) {
+            checkInstanceStatus($vm, $instanceName, STOPPED_STATUS);
+            $result = $vm->stopInstanceByName($instanceName);
+            checkFailResult($result);
+            assert('this instance was found to be already stopped' === $result['data']);
+            checkInstanceStatus($vm, $instanceName, STOPPED_STATUS); // should be not changed
+        }, null, $indent);
+
+        test("Vm::startInstanceByName(): start " . STOPPED_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
+            checkInstanceStatus($vm, $instanceName, STOPPED_STATUS);
+            $result = $vm->startInstanceByName($instanceName);
+            checkSuccessResult($result);
+            assert(null === $result['data']);
+            waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
+        }, null, $indent);
+
+        test("Vm::startInstanceByName(): start " . AVAILABLE_STATUS . " instance", function () use ($indent, $vm, $instanceName) {
+            waitInstanceStatus($vm, $instanceName, AVAILABLE_STATUS, $indent + 1);
+            $result = $vm->startInstanceByName($instanceName);
+            // todo: fix message "unable to start the stopped instance"
+            checkFailResult($result);
+            checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS); // should be not changed
+        }, null, $indent);
+
+        test("Vm::deleteInstanceByName(): delete " . AVAILABLE_STATUS . " instance", function () use ($indent, $instanceName, $vm) {
+            checkInstanceStatus($vm, $instanceName, AVAILABLE_STATUS);
+            $result = $vm->deleteInstanceByName($instanceName);
+            checkSuccessResult($result);
+            assert(null === $result['data']);
+            waitInstanceStatus($vm, $instanceName, DELETED_STATUS, $indent + 1);
+        }, null, $indent);
+    });
 }
 
 main();
