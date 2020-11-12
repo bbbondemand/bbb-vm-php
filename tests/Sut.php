@@ -17,10 +17,6 @@ class Sut
                  'customerId' => self::readEnvVar('VM_CUSTOMER_ID'),
                  'customerApiToken' => self::readEnvVar('VM_CUSTOMER_API_TOKEN'),
                  'baseApiUrl' => self::readEnvVar('VM_BASE_API_URL'),
-                 'startInstanceName' => self::readEnvVar('VM_START_INSTANCE_NAME'),
-                 'stopInstanceName' => self::readEnvVar('VM_STOP_INSTANCE_NAME'),
-                 'deleteInstanceName' => self::readEnvVar('VM_DELETE_INSTANCE_NAME'),
-                 'instanceName' => self::readEnvVar('VM_INSTANCE_NAME'),
             ];
         }
         return null !== $name ? $conf[$name] : $conf;

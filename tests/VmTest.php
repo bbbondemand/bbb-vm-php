@@ -11,12 +11,7 @@ use PHPUnit\Framework\TestCase;
 class VmTest extends TestCase
 {
     private $vm;
-    /*
-    private $startInstanceName;
-    private $stopInstanceName;
-    private $deleteInstanceName;
-    private $instanceName;
-    */
+
     /**
      * @var UrlBuilder
      */
@@ -26,16 +21,12 @@ class VmTest extends TestCase
     {
         parent::setUp();
         $conf = Sut::vmConf();
-        /*
-        $this->startInstanceName = $conf['startInstanceName'];
-        $this->stopInstanceName = $conf['stopInstanceName'];
-        $this->deleteInstanceName = $conf['deleteInstanceName'];
-        $this->instanceName = $conf['instanceName'];
-        */
         $baseApiUrl = $conf['baseApiUrl'];
         $customerId = $conf['customerId'];
         $this->urlBuilder = new UrlBuilder($customerId, $baseApiUrl);
         $this->vm = new Vm($conf['customerApiToken'], $this->urlBuilder);
+        // todo Now we are testing real service, replace the HttpClient with the stub.
+        // $this->vm->setHttpClient($this->mkHttpClientStub());
     }
 
     public function testExec_ReturnsErrorForInvalidUrl()
@@ -53,35 +44,23 @@ class VmTest extends TestCase
         $this->checkSuccessResult($result);
     }
 
+    public function testGetInstances()
+    {
+        $instances = $this->vm->getInstances();
+        $this->checkSuccessResult($instances);
+        $this->assertIsArray($instances['data']);
+    }
+
     public function testGetRegions()
     {
-        $result = $this->vm->getRegions();
-        $this->assertIsArray($result);
-        $this->checkSuccessResult($result);
-        $this->assertSame([
-            'Name' => 'europe-west3',
-            'Town' => 'Germany, Frankfurt',
-            'Continent' => 'Europe',
-        ], $result['data']['europe-west3']);
-        /*
-                $firstItem = reset($responseRegions['data']);
-                if (isset($firstItem)) {
-                    $this->assertContains('Name', $firstItem);
-                    $this->assertContains('Town', $firstItem);
-                    $this->assertContains('Continent', $firstItem);
-                    $this->assertContains('Zones', $firstItem);
-                    $this->assertContains('Capability', $firstItem);
-                    $this->assertContains('Active', $firstItem);
-                    $this->assertContains('Proximate', $firstItem);
-                }
-         */
+        $this->markTestIncomplete();
     }
 
     public function testGetRecordings()
     {
         $result = $this->vm->getRecordings();
         $this->checkSuccessResult($result);
-        $this->assertIsArray($result['data']);
+        $this->checkEmptyResult($result, true);
         $this->markTestIncomplete();
     }
 
@@ -181,104 +160,6 @@ class VmTest extends TestCase
         $this->markTestIncomplete();
     }
 
-    public function testInstanceApi()
-    {
-        $result = $this->vm->getInstances();
-
-        $checkGetInstancesResult = function ($result) {
-            $this->checkSuccessResult($result);
-            $this->assertIsArray($result['data']);
-            /*if (isset($responseInstancesList['data'][0])) {
-            $this->assertContains('Name', $responseInstancesList['data'][0]);
-            $this->assertContains('Status', $responseInstancesList['data'][0]);
-            $this->assertContains('Started', $responseInstancesList['data'][0]);
-            $this->assertContains('Finished', $responseInstancesList['data'][0]);
-            $this->assertContains('Seconds', $responseInstancesList['data'][0]);
-            $this->assertContains('Hostname', $responseInstancesList['data'][0]);
-            $this->assertContains('Secret', $responseInstancesList['data'][0]);
-            $this->assertContains('Region', $responseInstancesList['data'][0]);
-            $this->assertContains('MachineSize', $responseInstancesList['data'][0]);
-            $this->assertContains('Turn', $responseInstancesList['data'][0]);
-            }*/
-            /*
-            Returns summary of the instances previously created. If no parameters are passed, the response will include
-            all instances - including those which have been stopped and deleted.
-
-            Use optional parameters to filter the results - pass as json in the body of the request
-
-                ManageRecordings - boolean - if true, includes only instances created with managedRecordings=true
-                Region - string - restrict results to this region - must be valid region name from /regions
-                Status - string - restrict results to instances marked as: : "STARTING", "AVAILABLE", "STOPPING", "STOPPED", "DELETED".
-
-            The following is a description of the data returned for each instance:
-
-                Description - As supplied by you when the instance was created.
-                Finished - When was the instance deleted - Unix timestamp.
-                Hostname - Fully qualified domain name of the instance.
-                MachineSize - Size of the machine (small, standard, large, xlarge).
-                ManagedRecordings - bool, whether BBB On Demand will process / store recordings off machine
-                Name - Unique name allocated to the machine by the server (21 character alphanumeric string)
-                Region - Region as supplied at meeting creation. (Valid google compute region - see GET /regions)
-                Seconds - Seconds between Started and Finished (stoppages not currently accounted for).
-                Secret - Secret to be used to interact with BBB on this instance.
-                Started - When was the meeting started - Unix timestamp.
-                Status - The 'status' value is one of: "STARTING", "AVAILABLE", "STOPPING", "STOPPED", "DELETED".
-                Tags - As supplied when the instance was created.
-                Turn - List of stun / turn server names used for this instance.
-             */
-        };
-
-        $checkGetInstancesResult($result);
-
-        //$this->vm->createInstance([])
-
-        /*
-                $response = $this->vm->createInstance();
-                $this->assertEquals('success', $response['status']);
-
-                // todo
-                $this->vm->createInstance();
-
-                // todo
-                $this->vm->getInstanceByName($instanceName);
-        /*
-                $this->assertEquals('success', $responseInstanceByName['status']);
-                if (isset($responseInstanceByName['data'])) {
-                    $this->assertContains('Name', $responseInstanceByName['data']);
-                    $this->assertContains('Status', $responseInstanceByName['data']);
-                    $this->assertContains('Started', $responseInstanceByName['data']);
-                    $this->assertContains('Finished', $responseInstanceByName['data']);
-                    $this->assertContains('Seconds', $responseInstanceByName['data']);
-                    $this->assertContains('Hostname', $responseInstanceByName['data']);
-                    $this->assertContains('Secret', $responseInstanceByName['data']);
-                    $this->assertContains('Region', $responseInstanceByName['data']);
-                    $this->assertContains('MachineSize', $responseInstanceByName['data']);
-                    $this->assertContains('Turn', $responseInstanceByName['data']);
-                }
-         */
-
-        // todo
-        //$this->vm->deleteInstanceByName();
-        /*
-         *         $response = $this->vm->deleteInstanceByName($this->deleteInstanceName);
-                $this->assertEquals('success', $response['status']);
-         */
-
-        // todo
-        //$this->vm->startInstanceByName();
-        /*
-        $response = $this->vm->startInstanceByName($this->startInstanceName);
-        $this->assertEquals('success', $response['status']);
-        */
-
-        // todo
-        //$this->vm->stopInstanceByName();
-        /*
-        $response = $this->vm->stopInstanceByName($this->stopInstanceName);
-        $this->assertEquals('success', $response['status']);
-        */
-    }
-
     public function data_testGetInstanceByName_ClientSideChecks()
     {
         yield [
@@ -351,7 +232,7 @@ class VmTest extends TestCase
     {
         $this->assertSame(200, $this->vm->getResponse()->getStatusCode());
         $this->assertCount(2, $result);
-        $this->assertSame(Vm::SUCCESS_RESPONSE, $result['status']);
+        $this->assertSame(Vm::SUCCESS_STATUS, $result['status']);
         return $result;
     }
 
@@ -365,7 +246,16 @@ class VmTest extends TestCase
     {
         $this->assertSame($expectedStatusCode, $this->vm->getResponse()->getStatusCode());
         $this->assertCount(2, $result);
-        $this->assertSame(Vm::FAIL_RESPONSE, $result['status']);
+        $this->assertSame(Vm::FAIL_STATUS, $result['status']);
         return $result;
+    }
+
+    private function checkEmptyResult($result, bool $dataIsCollection)
+    {
+        if ($dataIsCollection) {
+            $this->assertIsArray($result['data']);
+        } else {
+            $this->assertNull($result['data']);
+        }
     }
 }
