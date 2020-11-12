@@ -157,7 +157,7 @@ function main(): void
         }, 0), 0);
     writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
 
-    test("Vm::getMeetings(), Vm::getRecordings(), Vm::getRecordingById(), Vm::createInstance() with ManagedRecordings and Tags", function () use ($vm) {
+    test("Vm::getMeetings(), Vm::getRecordings(), Vm::getRecordingById(), Vm::createInstance() with ManagedRecordings and with Tags", function () use ($vm) {
         // todo: always empty result
         //d($vm->getMeetings(), $vm->getRecordings());
 
