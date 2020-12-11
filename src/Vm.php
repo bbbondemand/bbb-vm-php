@@ -8,6 +8,7 @@
  *
  * @author Richard Phillips
  */
+
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -24,8 +25,7 @@ use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use function json_decode;
 
-class Vm
-{
+class Vm {
     public const SUCCESS_STATUS = 'success';
     //public const FAIL_STATUS = 'fail'; // invalid format or validation check
     public const ERR_STATUS = 'error'; // internal error like exception
@@ -55,8 +55,7 @@ class Vm
      */
     private $response;
 
-    public function __construct(string $customerApiToken, UrlBuilder $urlBuilder)
-    {
+    public function __construct(string $customerApiToken, UrlBuilder $urlBuilder) {
         $this->customerApiToken = $customerApiToken;
         $this->urlBuilder = $urlBuilder;
     }
@@ -66,8 +65,7 @@ class Vm
      * @param array $conf
      * @return Vm
      */
-    public static function mk(array $conf)
-    {
+    public static function mk(array $conf) {
         $urlBuilder = new UrlBuilder($conf['customerId'], $conf['baseApiUrl']);
         return new static($conf['customerApiToken'], $urlBuilder);
     }
@@ -75,23 +73,20 @@ class Vm
     // ------------------------------------------------------------------------
     // Remote API:
 
-    public function getInstances(array $queryParams = null): array
-    {
+    public function getInstances(array $queryParams = null): array {
         $queryString = http_build_query((array)$queryParams);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::LIST, null, $queryString);
         $result = $this->execGet($url);
         return $this->normalizeResult($result, true);
     }
 
-    public function createInstance(array $params = null): array
-    {
+    public function createInstance(array $params = null): array {
         $params = array_merge(["MachineSize" => "small"], (array)$params);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::CREATE);
         return $this->normalizeResult($this->execPost($url, $params), false);
     }
 
-    public function getInstanceByName(string $instanceName): array
-    {
+    public function getInstanceByName(string $instanceName): array {
         $this->checkInstanceName($instanceName);
         $pathParams = [
             'name' => $instanceName,
@@ -100,8 +95,7 @@ class Vm
         return $this->normalizeResult($this->execGet($url), false);
     }
 
-    public function deleteInstanceByName(string $instanceName): array
-    {
+    public function deleteInstanceByName(string $instanceName): array {
         $this->checkInstanceName($instanceName);
         $pathParams = [
             'name' => $instanceName,
@@ -110,8 +104,7 @@ class Vm
         return $this->normalizeResult($this->execDelete($url), false);
     }
 
-    public function startInstanceByName(string $instanceName): array
-    {
+    public function startInstanceByName(string $instanceName): array {
         $this->checkInstanceName($instanceName);
         $pathParams = [
             'name' => $instanceName,
@@ -120,8 +113,7 @@ class Vm
         return $this->normalizeResult($this->execGet($url), false);
     }
 
-    public function stopInstanceByName(string $instanceName): array
-    {
+    public function stopInstanceByName(string $instanceName): array {
         $this->checkInstanceName($instanceName);
         $pathParams = [
             'name' => $instanceName
@@ -130,28 +122,24 @@ class Vm
         return $this->normalizeResult($this->execGet($url), false);
     }
 
-    public function getMeetings(): array
-    {
+    public function getMeetings(): array {
         $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
         return $this->normalizeResult($this->execGet($url), true);
     }
 
-    public function getRecordings(): array
-    {
+    public function getRecordings(): array {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::LIST);
         $result = $this->execGet($url);
         return $this->normalizeResult($result, true);
     }
 
-    public function getRecordingById(string $recordingId): array
-    {
+    public function getRecordingById(string $recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
         return $this->normalizeResult($this->execGet($url), false);
     }
 
-    public function getRegions(): array
-    {
+    public function getRegions(): array {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
         return $this->normalizeResult($this->execGet($url), true);
     }
@@ -159,8 +147,7 @@ class Vm
     // ------------------------------------------------------------------------
     // Utility methods:
 
-    public function execDelete(string $url): array
-    {
+    public function execDelete(string $url): array {
         return $this->exec('DELETE', $url);
     }
 
@@ -168,8 +155,7 @@ class Vm
      * @param string $url
      * @return array
      */
-    public function execGet(string $url): array
-    {
+    public function execGet(string $url): array {
         return $this->exec('GET', $url);
     }
 
@@ -178,8 +164,7 @@ class Vm
      * @param array|null $payloadParams
      * @return array
      */
-    public function execPost(string $url, array $payloadParams = null): array
-    {
+    public function execPost(string $url, array $payloadParams = null): array {
         return $this->exec('POST', $url, $payloadParams);
     }
 
@@ -189,8 +174,7 @@ class Vm
      * @param array|null $payloadParams
      * @return array
      */
-    public function exec(string $httpMethod, string $url, array $payloadParams = null): array
-    {
+    public function exec(string $httpMethod, string $url, array $payloadParams = null): array {
         $requestOptions = ['verify' => false];
         if ($payloadParams) {
             $requestOptions['json'] = (array)$payloadParams;
@@ -205,41 +189,36 @@ class Vm
             $this->response = $response;
             return $this->checkResponse($response, $e);
         } /** @noinspection PhpUndefinedClassInspection */ catch (GuzzleException $e) {
-            return $this->mkErrResult(self::INTERNAL_ERR, (string) $e);
+            return $this->mkErrResult(self::INTERNAL_ERR, (string)$e);
         }
     }
 
     /**
      * @return ResponseInterface|null
      */
-    public function getResponse()
-    {
+    public function getResponse() {
         return $this->response;
     }
 
-    public function setHttpClient(ClientInterface $httpClient)
-    {
+    public function setHttpClient(ClientInterface $httpClient) {
         $this->httpClient = $httpClient;
         return $this;
     }
 
-    public function getHttpClient(): ClientInterface
-    {
+    public function getHttpClient(): ClientInterface {
         if (null === $this->httpClient) {
             $this->httpClient = $this->mkHttpClient();
         }
         return $this->httpClient;
     }
 
-    protected function mkHttpClient(): ClientInterface
-    {
+    protected function mkHttpClient(): ClientInterface {
         return new Client(['headers' => [
             'APITOKEN' => $this->customerApiToken
         ]]);
     }
 
-    private function checkResponse($response, Exception $ex = null): array
-    {
+    private function checkResponse($response, Exception $ex = null): array {
         if ($response) {
             $contents = $response->getBody()->getContents();
             if (!$contents) {
@@ -262,8 +241,7 @@ class Vm
         return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error');
     }
 
-    private function mkErrResult(int $errCode, string $message): array
-    {
+    private function mkErrResult(int $errCode, string $message): array {
         return [
             'data' => null,
             'message' => '[ERR:' . $errCode . '] ' . (string)$message,
@@ -271,8 +249,7 @@ class Vm
         ];
     }
 
-    private function normalizeResult(array $result, bool $dataIsCollection): array
-    {
+    private function normalizeResult(array $result, bool $dataIsCollection): array {
         if (array_key_exists('data', $result) && ($result['data'] === null || $result['data'] === '')) {
             $result['data'] = $dataIsCollection ? [] : null;
         }
@@ -283,8 +260,7 @@ class Vm
      * @param string $instanceName
      * @throws InvalidArgumentException
      */
-    private function checkInstanceName(string $instanceName): void
-    {
+    private function checkInstanceName(string $instanceName): void {
         if ('' === $instanceName) {
             throw new InvalidArgumentException("Invalid instance name: can't be blank");
         }
@@ -300,8 +276,7 @@ class Vm
      * @param string $recordingId
      * @throws InvalidArgumentException
      */
-    private function checkRecordingId(string $recordingId)
-    {
+    private function checkRecordingId(string $recordingId) {
         if ('' === $recordingId) {
             throw new InvalidArgumentException("Invalid recording ID: can't be blank");
         }

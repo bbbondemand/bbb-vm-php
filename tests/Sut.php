@@ -1,16 +1,15 @@
 <?php declare(strict_types=1);
+
 namespace BBBondemand;
 
 use RuntimeException;
 
-class Sut
-{
+class Sut {
     /**
      * @param string|null $name
      * @return array|string
      */
-    public static function vmConf(string $name = null)
-    {
+    public static function vmConf(string $name = null) {
         static $conf;
         if (!$conf) {
             $conf = [
@@ -26,8 +25,7 @@ class Sut
      * @param string $name
      * @return array|string
      */
-    private static function readEnvVar(string $name)
-    {
+    private static function readEnvVar(string $name) {
         $val = getenv($name);
         if (!$val) {
             throw new RuntimeException("The environment variable $name is not set");

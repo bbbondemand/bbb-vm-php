@@ -17,8 +17,7 @@ namespace BBBondemand\Enums;
  *
  * @package BBBondemand\Enums
  */
-class RecordingsApiRoute
-{
+class RecordingsApiRoute {
     public const LIST = 'recordings';
     public const GET = 'recordings/{recordingID}';
 }

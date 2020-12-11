@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BBBondemand;
 // These are integration tests of the remote VM REST API.
 
@@ -18,22 +19,19 @@ if (ini_get('zend.assertions') !== '1') {
 ini_set('assert.active', '1');
 ini_set('assert.exception', '1');
 
-function checkSuccessResult(array $result): array
-{
+function checkSuccessResult(array $result): array {
     assert(count($result) === 2);
     assert(Vm::SUCCESS_STATUS === $result['status']);
     return $result;
 }
 
-function checkFailResult(array $result, string $expectedMessage): array
-{
+function checkFailResult(array $result, string $expectedMessage): array {
     assert(count($result) === 3);
     assert(Vm::ERR_STATUS === $result['status']);
     return $result;
 }
 
-function checkInstanceDetails(array $instanceDetails): void
-{
+function checkInstanceDetails(array $instanceDetails): void {
     assert(count($instanceDetails) >= 8, "Instance details size");
     assert((bool)preg_match('~^[a-z0-9]{21}$~', $instanceDetails['Name']));
     assert(in_array($instanceDetails['Status'], ['STARTING', 'AVAILABLE', 'STOPPING', 'STOPPED', 'DELETED'], true));
@@ -56,16 +54,14 @@ function checkInstanceDetails(array $instanceDetails): void
  * @param int $indent
  * @return mixed
  */
-function test(string $test, Closure $fn, $args = null, int $indent = 0)
-{
+function test(string $test, Closure $fn, $args = null, int $indent = 0) {
     writeLnIndent("Testing $test...", $indent);
     $res = $fn($args);
     writeLnIndent("OK", $indent);
     return $res;
 }
 
-function deleteAllInstances(Vm $vm): int
-{
+function deleteAllInstances(Vm $vm): int {
     $i = 0;
     foreach ($vm->getInstances()['data'] as $instanceDetails) {
         if ($instanceDetails['Status'] !== 'DELETED') {
@@ -82,8 +78,7 @@ function deleteAllInstances(Vm $vm): int
     return $i;
 }
 
-function mkVm(): Vm
-{
+function mkVm(): Vm {
     $envVars = [];
     // See vendor/phpunit/phpunit/src/TextUI/XmlConfiguration/PHP/PhpHandler.php
     foreach ((new Loader)->load(__DIR__ . '/../phpunit.xml')->php()->envVariables() as $envVar) {
@@ -96,13 +91,11 @@ function mkVm(): Vm
     ]);
 }
 
-function writeLnIndent(string $text, int $indent): void
-{
+function writeLnIndent(string $text, int $indent): void {
     echo str_repeat('    ', $indent) . $text . "\n";
 }
 
-function waitInstanceStatus(Vm $vm, string $instanceName, string $expectedStatus, int $indent = 0): void
-{
+function waitInstanceStatus(Vm $vm, string $instanceName, string $expectedStatus, int $indent = 0): void {
     $sleepSecs = 10;
     for ($i = 0; $i < 60 * 5; $i++) {
         $curStatus = $vm->getInstanceByName($instanceName)['data']['Status'];
@@ -116,13 +109,11 @@ function waitInstanceStatus(Vm $vm, string $instanceName, string $expectedStatus
     throw new RuntimeException("Instance '$instanceName' can't get the expected status '$expectedStatus', waited: " . ($i * $sleepSecs) . ' seconds');
 }
 
-function checkInstanceStatus(Vm $vm, string $instanceName, string $expectedStatus): void
-{
+function checkInstanceStatus(Vm $vm, string $instanceName, string $expectedStatus): void {
     assert($vm->getInstanceByName($instanceName)['data']['Status'] === $expectedStatus, "Precondition: instance '$instanceName' has '$expectedStatus' Status");
 }
 
-function checkCreationResult(array $creationResult): array
-{
+function checkCreationResult(array $creationResult): array {
     checkSuccessResult($creationResult);
     $creationData = $creationResult['data'];
     assert(4, $creationData);
@@ -137,8 +128,7 @@ const AVAILABLE_STATUS = 'AVAILABLE';
 const STOPPED_STATUS = 'STOPPED';
 const DELETED_STATUS = 'DELETED';
 
-function main(): void
-{
+function main(): void {
     $vm = mkVm();
 
     register_shutdown_function(function () use ($vm) {

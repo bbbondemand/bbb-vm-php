@@ -17,7 +17,6 @@ namespace BBBondemand\Enums;
  *
  * @package BBBondemand\Enums
  */
-class MeetingsApiRoute
-{
+class MeetingsApiRoute {
     public const LIST = 'meetings';
 }

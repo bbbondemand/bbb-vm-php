@@ -17,8 +17,7 @@ namespace BBBondemand\Enums;
  *
  * @package BBBondemand\Enums
  */
-class InstancesApiRoute
-{
+class InstancesApiRoute {
     public const LIST = 'instances';
     public const CREATE = 'instances';
     public const GET = 'instances/{name}';

@@ -17,8 +17,7 @@ namespace BBBondemand\Util;
  *
  * @package BBBondemand\Util
  */
-class UrlBuilder
-{
+class UrlBuilder {
     /**
      * @var string
      */
@@ -37,8 +36,7 @@ class UrlBuilder
      * @param $customerId
      * @param $baseApiUrl
      */
-    public function __construct($customerId, string $baseApiUrl = null)
-    {
+    public function __construct($customerId, string $baseApiUrl = null) {
         $this->customerId = $customerId;
         $this->baseApiUrl = $baseApiUrl ?? self::BASE_API_URL;
     }
@@ -52,8 +50,7 @@ class UrlBuilder
      *
      * @return string
      */
-    public function buildUrl(string $route, array $pathParams = null, string $queryString = null): string
-    {
+    public function buildUrl(string $route, array $pathParams = null, string $queryString = null): string {
         $pathParams = (array)$pathParams;
         preg_match('#\{(.*?)\}#', $route, $match);
         $variable = $match[1] ?? '';

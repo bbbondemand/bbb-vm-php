@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+
 namespace BBBondemand;
 
 use BBBondemand\Enums\InstancesApiRoute;
@@ -8,8 +9,7 @@ use BBBondemand\Util\UrlBuilder;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
-class VmTest extends TestCase
-{
+class VmTest extends TestCase {
     private $vm;
 
     /**
@@ -17,8 +17,7 @@ class VmTest extends TestCase
      */
     private $urlBuilder;
 
-    public function setUp(): void
-    {
+    public function setUp(): void {
         parent::setUp();
         $conf = Sut::vmConf();
         $baseApiUrl = $conf['baseApiUrl'];
@@ -29,29 +28,25 @@ class VmTest extends TestCase
         // $this->vm->setHttpClient($this->mkHttpClientStub());
     }
 
-    public function testExec_ReturnsErrorForInvalidUrl()
-    {
+    public function testExec_ReturnsErrorForInvalidUrl() {
         $baseApiUrl = Sut::vmConf('baseApiUrl');
         $result = $this->vm->exec('GET', $baseApiUrl . '/non-existing/url');
         $this->checkFailedResult($result, 403, '[ERR:' . Vm::INVALID_REQUEST . '] Forbidden');
     }
 
-    public function testExec_SuccessResult()
-    {
+    public function testExec_SuccessResult() {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
         $result = $this->vm->exec('GET', $url);
         $this->checkSuccessResult($result);
     }
 
-    public function testGetInstances()
-    {
+    public function testGetInstances() {
         $instances = $this->vm->getInstances();
         $this->checkSuccessResult($instances);
         $this->assertIsArray($instances['data']);
     }
 
-    public function testGetRegions()
-    {
+    public function testGetRegions() {
         $regions = $this->vm->getRegions();
         $this->checkSuccessResult($regions);
         $this->assertIsArray($regions['data']);
@@ -68,22 +63,19 @@ class VmTest extends TestCase
         }
     }
 
-    public function testGetRecordings()
-    {
+    public function testGetRecordings() {
         $result = $this->vm->getRecordings();
         $this->checkSuccessResult($result);
         $this->checkEmptyResult($result, true);
         $this->markTestIncomplete();
     }
 
-    public function testGetRecordingById_NonExistingRecording()
-    {
+    public function testGetRecordingById_NonExistingRecording() {
         $result = $this->vm->getRecordingById("testtesttesttesttesttesttesttesttesttesttesttesttestte");
         $this->checkFailedResult($result, 400, 'Recording not found');
     }
 
-    public function data_testGetRecordingById_ClientSideChecks()
-    {
+    public function data_testGetRecordingById_ClientSideChecks() {
         yield [
             "Invalid recording ID: can't be blank",
             '',
@@ -104,15 +96,13 @@ class VmTest extends TestCase
      * @param string $expectedMessage
      * @param string $recordingId
      */
-    public function testGetRecordingById_ClientSideChecks(string $expectedMessage, string $recordingId)
-    {
+    public function testGetRecordingById_ClientSideChecks(string $expectedMessage, string $recordingId) {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($expectedMessage);
         $this->vm->getRecordingById($recordingId);
     }
 
-    public function data_testGetRecordingById_ServerSideChecks()
-    {
+    public function data_testGetRecordingById_ServerSideChecks() {
         /* todo
         yield [
             "recording ID can't be blank",
@@ -134,20 +124,17 @@ class VmTest extends TestCase
      * @param string $expectedMessage
      * @param string $recordingId
      */
-    public function testGetRecordingById_ServerSideChecks(string $expectedMessage, string $recordingId)
-    {
+    public function testGetRecordingById_ServerSideChecks(string $expectedMessage, string $recordingId) {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
         $result = $this->vm->execGet($url);
         $this->checkFailedResult($result, 400, $expectedMessage);
     }
 
-    public function testGetRecordingById_ValidRecordingId()
-    {
+    public function testGetRecordingById_ValidRecordingId() {
         $this->markTestIncomplete();
     }
 
-    public function testGetMeetings()
-    {
+    public function testGetMeetings() {
         $result = $this->vm->getMeetings();
         $this->checkSuccessResult($result);
         /*
@@ -170,8 +157,7 @@ class VmTest extends TestCase
         $this->markTestIncomplete();
     }
 
-    public function data_testGetInstanceByName_ClientSideChecks()
-    {
+    public function data_testGetInstanceByName_ClientSideChecks() {
         yield [
             "Invalid instance name: can't be blank",
             '',
@@ -191,15 +177,13 @@ class VmTest extends TestCase
      * @param string $instanceName
      * @dataProvider data_testGetInstanceByName_ClientSideChecks
      */
-    public function testGetInstanceByName_ClientSideChecks(string $expectedMessage, string $instanceName)
-    {
+    public function testGetInstanceByName_ClientSideChecks(string $expectedMessage, string $instanceName) {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage($expectedMessage);
         $this->vm->getInstanceByName($instanceName);
     }
 
-    public function data_testGetInstanceByName_ServerSideChecks()
-    {
+    public function data_testGetInstanceByName_ServerSideChecks() {
         /*
                 todo
                 yield [
@@ -225,8 +209,7 @@ class VmTest extends TestCase
      * @param string $instanceName
      * @dataProvider data_testGetInstanceByName_ServerSideChecks
      */
-    public function testGetInstanceByName_ServerSideChecks(string $expectedMessage, string $instanceName)
-    {
+    public function testGetInstanceByName_ServerSideChecks(string $expectedMessage, string $instanceName) {
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, ['name' => $instanceName]);
         $result = $this->vm->execGet($url);
         $this->checkFailedResult($result, 400, $expectedMessage);
@@ -237,8 +220,7 @@ class VmTest extends TestCase
      * @param array $result
      * @return array
      */
-    private function checkSuccessResult(array $result): array
-    {
+    private function checkSuccessResult(array $result): array {
         $this->assertSame(200, $this->vm->getResponse()->getStatusCode());
         $this->assertCount(2, $result);
         $this->assertSame(Vm::SUCCESS_STATUS, $result['status']);
@@ -256,8 +238,7 @@ class VmTest extends TestCase
      * @param int $expectedStatusCode
      * @return array
      */
-    private function checkFailedResult(array $result, int $expectedStatusCode, string $expectedMessage): array
-    {
+    private function checkFailedResult(array $result, int $expectedStatusCode, string $expectedMessage): array {
         $this->assertSame($expectedStatusCode, $this->vm->getResponse()->getStatusCode());
         $this->assertCount(3, $result);
         $this->assertNull($result['data']);
@@ -266,8 +247,7 @@ class VmTest extends TestCase
         return $result;
     }
 
-    private function checkEmptyResult($result, bool $dataIsCollection)
-    {
+    private function checkEmptyResult($result, bool $dataIsCollection) {
         if ($dataIsCollection) {
             $this->assertIsArray($result['data']);
         } else {

@@ -1,12 +1,11 @@
 <?php declare(strict_types=1);
+
 namespace BBBondemand\Util;
 
 use PHPUnit\Framework\TestCase;
 
-class UrlBuilderTest extends TestCase
-{
-    public function testBuildUrl()
-    {
+class UrlBuilderTest extends TestCase {
+    public function testBuildUrl() {
         $apiServerBaseUrl = UrlBuilder::BASE_API_URL;
         $customerId = 'someCustomerId';
         $urlBuilder = new UrlBuilder('someCustomerId', $apiServerBaseUrl);
