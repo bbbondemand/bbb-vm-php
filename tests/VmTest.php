@@ -33,8 +33,7 @@ class VmTest extends TestCase
     {
         $baseApiUrl = Sut::vmConf('baseApiUrl');
         $result = $this->vm->exec('GET', $baseApiUrl . '/non-existing/url');
-        $this->checkFailResult($result, 403);
-        $this->assertSame('[ERR:' . Vm::INVALID_REQUEST . '] Forbidden', $result['data']);
+        $this->checkFailedResult($result, 403, '[ERR:' . Vm::INVALID_REQUEST . '] Forbidden');
     }
 
     public function testExec_SuccessResult()
@@ -67,8 +66,7 @@ class VmTest extends TestCase
     public function testGetRecordingById_NonExistingRecording()
     {
         $result = $this->vm->getRecordingById("testtesttesttesttesttesttesttesttesttesttesttesttestte");
-        $this->checkFailResult($result, 400);
-        $this->assertStringContainsString('unable to find recording', $result['data']);
+        $this->checkFailedResult($result, 400, 'Recording not found');
     }
 
     public function data_testGetRecordingById_ClientSideChecks()
@@ -109,11 +107,11 @@ class VmTest extends TestCase
         ];
         */
         yield [
-            "invalid recording ID: must be in lower case",
+            "Invalid recording ID: must be in lower case",
             'someIdOfRecording',
         ];
         yield [
-            "invalid recording ID: the length must be exactly 54",
+            "Invalid recording ID: the length must be exactly 54",
             'someidofrecording',
         ];
     }
@@ -127,8 +125,7 @@ class VmTest extends TestCase
     {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
         $result = $this->vm->execGet($url);
-        $this->checkFailResult($result, 400);
-        $this->assertSame($expectedMessage, $result['data']);
+        $this->checkFailedResult($result, 400, $expectedMessage);
     }
 
     public function testGetRecordingById_ValidRecordingId()
@@ -197,11 +194,11 @@ class VmTest extends TestCase
                     '',
                 ];*/
         yield [
-            'invalid instance name: must be in lower case',
+            'Invalid instance name: must be in lower case',
             'fooBar',
         ];
         yield [
-            'invalid instance name: the length must be between 19 and 22',
+            'Invalid instance name: the length must be between 19 and 22',
             'foobar',
         ];
         yield [
@@ -219,8 +216,7 @@ class VmTest extends TestCase
     {
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, ['name' => $instanceName]);
         $result = $this->vm->execGet($url);
-        $this->checkFailResult($result, 400);
-        $this->assertSame($expectedMessage, $result['data']);
+        $this->checkFailedResult($result, 400, $expectedMessage);
     }
 
     /**
@@ -237,16 +233,23 @@ class VmTest extends TestCase
     }
 
     /**
-     * Makes common checks for the error result
+     * E.g. of the failed result:
+     * array(3) {
+     *     ["status"]=> string(5) "error"
+     *     ["data"]=> NULL
+     *     ["message"]=> string(19) "Recording not found"
+     * }
      * @param array $result
      * @param int $expectedStatusCode
      * @return array
      */
-    private function checkFailResult(array $result, int $expectedStatusCode): array
+    private function checkFailedResult(array $result, int $expectedStatusCode, string $expectedMessage): array
     {
         $this->assertSame($expectedStatusCode, $this->vm->getResponse()->getStatusCode());
-        $this->assertCount(2, $result);
-        $this->assertSame(Vm::FAIL_STATUS, $result['status']);
+        $this->assertCount(3, $result);
+        $this->assertNull($result['data']);
+        $this->assertSame(Vm::ERR_STATUS, $result['status']);
+        $this->assertSame($expectedMessage, $result['message']);
         return $result;
     }
 

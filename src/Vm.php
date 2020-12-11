@@ -27,7 +27,7 @@ use function json_decode;
 class Vm
 {
     public const SUCCESS_STATUS = 'success';
-    public const FAIL_STATUS = 'fail'; // invalid format or validation check
+    //public const FAIL_STATUS = 'fail'; // invalid format or validation check
     public const ERR_STATUS = 'error'; // internal error like exception
 
     public const UNKNOWN_ERR = 1;
@@ -205,7 +205,7 @@ class Vm
             $this->response = $response;
             return $this->checkResponse($response, $e);
         } /** @noinspection PhpUndefinedClassInspection */ catch (GuzzleException $e) {
-            return $this->mkErrResult(self::INTERNAL_ERR, $e, self::UNKNOWN_ERR);
+            return $this->mkErrResult(self::INTERNAL_ERR, (string) $e);
         }
     }
 
@@ -243,31 +243,31 @@ class Vm
         if ($response) {
             $contents = $response->getBody()->getContents();
             if (!$contents) {
-                return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_STATUS);
+                return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error');
             }
             $responsePayload = json_decode($contents, true);
             if (null === $responsePayload && $response->getStatusCode() === 403) {
-                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden', self::FAIL_STATUS);
+                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden'/*, self::FAIL_STATUS*/);
             }
-            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_STATUS && $responsePayload['status'] !== self::FAIL_STATUS && $responsePayload['status'] !== self::ERR_STATUS)) {
-                return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value", self::ERR_STATUS);
+            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_STATUS/* && $responsePayload['status'] !== self::FAIL_STATUS && */ && $responsePayload['status'] !== self::ERR_STATUS)) {
+                return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value");
             }
             if (!$ex) {
                 return $responsePayload; // it is a valid response, return it as is.
             }
-            if ($responsePayload['status'] === self::ERR_STATUS || $responsePayload['status'] === self::FAIL_STATUS) {
+            if ($responsePayload['status'] === self::ERR_STATUS/* || $responsePayload['status'] === self::FAIL_STATUS*/) {
                 return $responsePayload;
             }
         }
-        return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error', self::ERR_STATUS);
+        return $this->mkErrResult(self::UNKNOWN_ERR, 'Unknown error');
     }
 
-    private function mkErrResult(int $errCode, $message, $status): array
+    private function mkErrResult(int $errCode, string $message): array
     {
         return [
-            'data' => '[ERR:' . $errCode . '] ' . (string)$message,
-            //'message' => ,
-            'status' => $status,
+            'data' => null,
+            'message' => '[ERR:' . $errCode . '] ' . (string)$message,
+            'status' => self::ERR_STATUS,
         ];
     }
 
