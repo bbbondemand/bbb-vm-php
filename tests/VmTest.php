@@ -52,7 +52,20 @@ class VmTest extends TestCase
 
     public function testGetRegions()
     {
-        $this->markTestIncomplete();
+        $regions = $this->vm->getRegions();
+        $this->checkSuccessResult($regions);
+        $this->assertIsArray($regions['data']);
+        $assertNotEmptyString = function ($val) {
+            $this->assertIsString($val);
+            $this->assertNotEmpty($val);
+        };
+        foreach ($regions['data'] as $key => $val) {
+            $this->assertMatchesRegularExpression('~^[-0-9a-z]+$~si', $key);
+            $this->assertCount(3, $val);
+            $assertNotEmptyString($val['Name']);
+            $assertNotEmptyString($val['Town']);
+            $assertNotEmptyString($val['Continent']);
+        }
     }
 
     public function testGetRecordings()

@@ -8,7 +8,7 @@ use RuntimeException;
 use UnexpectedValueException;
 use function ini_set;
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
@@ -18,23 +18,17 @@ if (ini_get('zend.assertions') !== '1') {
 ini_set('assert.active', '1');
 ini_set('assert.exception', '1');
 
-function d(...$vars): void
-{
-    var_dump(...$vars);
-    exit;
-}
-
 function checkSuccessResult(array $result): array
 {
-    assert(Vm::SUCCESS_STATUS === $result['status']);
     assert(count($result) === 2);
+    assert(Vm::SUCCESS_STATUS === $result['status']);
     return $result;
 }
 
-function checkFailResult(array $result): array
+function checkFailResult(array $result, string $expectedMessage): array
 {
-    assert(Vm::FAIL_STATUS === $result['status']);
-    assert(count($result) === 2);
+    assert(count($result) === 3);
+    assert(Vm::ERR_STATUS === $result['status']);
     return $result;
 }
 
