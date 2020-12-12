@@ -12,12 +12,10 @@
 
 namespace BBBondemand\Enums;
 
-/**
- * Class UrlBuilder
- *
- * @package BBBondemand\Enums
- */
 class RecordingsApiRoute {
     public const LIST = 'recordings';
     public const GET = 'recordings/{recordingID}';
+    public const PUBLISH = 'recordings/{recordingID}';
+    public const UNPUBLISH = 'recordings/{recordingID}';
+    public const DELETE = 'recordings/{recordingID}';
 }

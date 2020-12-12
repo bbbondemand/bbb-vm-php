@@ -11,6 +11,7 @@
 
 namespace BBBondemand;
 
+use BBBondemand\Enums\BillingApiRoute;
 use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\MeetingsApiRoute;
 use BBBondemand\Enums\RecordingsApiRoute;
@@ -27,7 +28,6 @@ use function json_decode;
 
 class Vm {
     public const SUCCESS_STATUS = 'success';
-    //public const FAIL_STATUS = 'fail'; // invalid format or validation check
     public const ERR_STATUS = 'error'; // internal error like exception
 
     public const UNKNOWN_ERR = 1;
@@ -71,113 +71,133 @@ class Vm {
     }
 
     // ------------------------------------------------------------------------
-    // Remote API:
+    // # Remote API:
+
+    // ## Billing:
+
+    public function getBillingActivity(): array {
+        $url = $this->urlBuilder->buildUrl(BillingApiRoute::ACTIVITY);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, false);
+    }
+
+    // ## Instances:
 
     public function getInstances(array $queryParams = null): array {
         $queryString = http_build_query((array)$queryParams);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::LIST, null, $queryString);
-        $result = $this->execGet($url);
+        $result = $this->sendGet($url);
         return $this->normalizeResult($result, true);
     }
 
     public function createInstance(array $params = null): array {
         $params = array_merge(["MachineSize" => "small"], (array)$params);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::CREATE);
-        return $this->normalizeResult($this->execPost($url, $params), false);
+        return $this->normalizeResult($this->sendPost($url, $params), false);
     }
 
-    public function getInstanceByName(string $instanceName): array {
-        $this->checkInstanceName($instanceName);
+    public function getInstance(string $instanceId): array {
+        $this->checkInstanceId($instanceId);
         $pathParams = [
-            'name' => $instanceName,
+            'instanceID' => $instanceId,
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, $pathParams);
-        return $this->normalizeResult($this->execGet($url), false);
+        return $this->normalizeResult($this->sendGet($url), false);
     }
 
-    public function deleteInstanceByName(string $instanceName): array {
-        $this->checkInstanceName($instanceName);
+    public function deleteInstance(string $instanceId): array {
+        $this->checkInstanceId($instanceId);
         $pathParams = [
-            'name' => $instanceName,
+            'instanceID' => $instanceId,
         ];
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $pathParams);
-        return $this->normalizeResult($this->execDelete($url), false);
+        return $this->normalizeResult($this->sendDelete($url), false);
     }
 
-    public function startInstanceByName(string $instanceName): array {
-        $this->checkInstanceName($instanceName);
-        $pathParams = [
-            'name' => $instanceName,
-        ];
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START, $pathParams);
-        return $this->normalizeResult($this->execGet($url), false);
+    public function startInstance(string $instanceId): array {
+        $this->checkInstanceId($instanceId);
+        // todo: remove url parameter as data is passed in payload
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START, ['instanceID' => $instanceId]);
+        return $this->normalizeResult($this->sendPatch($url, ['name' => $instanceId]), false);
     }
 
-    public function stopInstanceByName(string $instanceName): array {
-        $this->checkInstanceName($instanceName);
-        $pathParams = [
-            'name' => $instanceName
-        ];
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP, $pathParams);
-        return $this->normalizeResult($this->execGet($url), false);
+    public function stopInstance(string $instanceId): array {
+        $this->checkInstanceId($instanceId);
+        // todo: remove url parameter as data is passed in payload
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP, ['instanceID' => $instanceId]);
+        return $this->normalizeResult($this->sendPut($url, ['name' => $instanceId]), false);
     }
+
+    public function getInstanceHistory() {
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::HISTORY);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, false);
+    }
+
+    // ## Meetings:
 
     public function getMeetings(): array {
         $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
-        return $this->normalizeResult($this->execGet($url), true);
+        return $this->normalizeResult($this->sendGet($url), true);
     }
+
+    public function getMeeting(string $meetingId): array {
+        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::GET, ['meetingID' => $meetingId]);
+        return $this->normalizeResult($this->sendGet($url), false);
+    }
+
+    // ## Recordings:
 
     public function getRecordings(): array {
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::LIST);
-        $result = $this->execGet($url);
+        $result = $this->sendGet($url);
         return $this->normalizeResult($result, true);
     }
 
-    public function getRecordingById(string $recordingId): array {
+    public function getRecording(string $recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
-        return $this->normalizeResult($this->execGet($url), false);
+        return $this->normalizeResult($this->sendGet($url), false);
     }
+
+    public function unpublishRecording(string $recordingId): array {
+        $this->checkRecordingId($recordingId);
+        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::UNPUBLISH, ['recordingID' => $recordingId]);
+        $this->sendPatch($url, ['recordingID' => $recordingId]);
+    }
+
+    public function deleteRecording(string $recordingId): array {
+        $this->checkRecordingId($recordingId);
+        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::DELETE, ['recordingID' => $recordingId]);
+        return $this->sendDelete($url);
+    }
+
+    public function publishRecording(string $recordingId) {
+        $this->checkRecordingId($recordingId);
+        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::PUBLISH, ['recordingID' => $recordingId]);
+        $this->sendPut($url, ['recordingID' => $recordingId]);
+    }
+
+    // ## Regions:
 
     public function getRegions(): array {
         $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
-        return $this->normalizeResult($this->execGet($url), true);
+        return $this->normalizeResult($this->sendGet($url), true);
     }
 
     // ------------------------------------------------------------------------
-    // Utility methods:
-
-    public function execDelete(string $url): array {
-        return $this->exec('DELETE', $url);
-    }
-
-    /**
-     * @param string $url
-     * @return array
-     */
-    public function execGet(string $url): array {
-        return $this->exec('GET', $url);
-    }
-
-    /**
-     * @param string $url
-     * @param array|null $payloadParams
-     * @return array
-     */
-    public function execPost(string $url, array $payloadParams = null): array {
-        return $this->exec('POST', $url, $payloadParams);
-    }
+    // # Utility methods:
 
     /**
      * @param string $httpMethod
      * @param string $url
-     * @param array|null $payloadParams
+     * @param array|null $payloadData
      * @return array
      */
-    public function exec(string $httpMethod, string $url, array $payloadParams = null): array {
+    public function send(string $httpMethod, string $url, array $payloadData = null): array {
         $requestOptions = ['verify' => false];
-        if ($payloadParams) {
-            $requestOptions['json'] = (array)$payloadParams;
+        if ($payloadData) {
+            $requestOptions['json'] = (array)$payloadData;
         }
         try {
             $httpClient = $this->getHttpClient();
@@ -218,6 +238,26 @@ class Vm {
         ]]);
     }
 
+    private function sendDelete(string $url): array {
+        return $this->send('DELETE', $url);
+    }
+
+    private function sendGet(string $url): array {
+        return $this->send('GET', $url);
+    }
+
+    private function sendPatch(string $url, array $payloadData): array {
+        return $this->send('PATCH', $url, $payloadData);
+    }
+
+    private function sendPut(string $url, array $payloadData): array {
+        return $this->send('PUT', $url, $payloadData);
+    }
+
+    private function sendPost(string $url, array $payloadData = null): array {
+        return $this->send('POST', $url, $payloadData);
+    }
+
     private function checkResponse($response, Exception $ex = null): array {
         if ($response) {
             $contents = $response->getBody()->getContents();
@@ -226,15 +266,15 @@ class Vm {
             }
             $responsePayload = json_decode($contents, true);
             if (null === $responsePayload && $response->getStatusCode() === 403) {
-                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden'/*, self::FAIL_STATUS*/);
+                return $this->mkErrResult(self::INVALID_REQUEST, 'Forbidden');
             }
-            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_STATUS/* && $responsePayload['status'] !== self::FAIL_STATUS && */ && $responsePayload['status'] !== self::ERR_STATUS)) {
+            if (!isset($responsePayload['status']) || ($responsePayload['status'] !== self::SUCCESS_STATUS && $responsePayload['status'] !== self::ERR_STATUS)) {
                 return $this->mkErrResult(self::INVALID_RESPONSE_STATUS_ERR, "The 'status' field either empty or has invalid value");
             }
             if (!$ex) {
                 return $responsePayload; // it is a valid response, return it as is.
             }
-            if ($responsePayload['status'] === self::ERR_STATUS/* || $responsePayload['status'] === self::FAIL_STATUS*/) {
+            if ($responsePayload['status'] === self::ERR_STATUS) {
                 return $responsePayload;
             }
         }
@@ -257,17 +297,17 @@ class Vm {
     }
 
     /**
-     * @param string $instanceName
+     * @param string $instanceId
      * @throws InvalidArgumentException
      */
-    private function checkInstanceName(string $instanceName): void {
-        if ('' === $instanceName) {
+    private function checkInstanceId(string $instanceId): void {
+        if ('' === $instanceId) {
             throw new InvalidArgumentException("Invalid instance name: can't be blank");
         }
-        if (preg_match('~[A-Z]~s', $instanceName)) {
+        if (preg_match('~[A-Z]~s', $instanceId)) {
             throw new InvalidArgumentException("Invalid instance name: must be in lower case");
         }
-        if (strlen($instanceName) < 19 || strlen($instanceName) > 22) {
+        if (strlen($instanceId) < 19 || strlen($instanceId) > 22) {
             throw new InvalidArgumentException("Invalid instance name: the length must be between 19 and 22");
         }
     }

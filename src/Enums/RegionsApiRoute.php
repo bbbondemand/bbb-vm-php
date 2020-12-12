@@ -12,11 +12,6 @@
 
 namespace BBBondemand\Enums;
 
-/**
- * Class UrlBuilder
- *
- * @package BBBondemand\Enums
- */
 class RegionsApiRoute {
     public const LIST = 'regions';
 }

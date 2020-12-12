@@ -12,11 +12,7 @@
 
 namespace BBBondemand\Enums;
 
-/**
- * Class UrlBuilder
- *
- * @package BBBondemand\Enums
- */
 class MeetingsApiRoute {
     public const LIST = 'meetings';
+    public const GET = 'meetings/{meetingID}';
 }

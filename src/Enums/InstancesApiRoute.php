@@ -12,16 +12,12 @@
 
 namespace BBBondemand\Enums;
 
-/**
- * Class UrlBuilder
- *
- * @package BBBondemand\Enums
- */
 class InstancesApiRoute {
     public const LIST = 'instances';
     public const CREATE = 'instances';
-    public const GET = 'instances/{name}';
-    public const DELETE = 'instances/{name}';
-    public const START = 'instances/{name}/start';
-    public const STOP = 'instances/{name}/stop';
+    public const GET = 'instances/{instanceID}';
+    public const DELETE = 'instances/{instanceID}';
+    public const START = 'instances/{instanceID}/start';
+    public const STOP = 'instances/{instanceID}/stop';
+    public const HISTORY = 'instances/{instanceID}/history';
 }

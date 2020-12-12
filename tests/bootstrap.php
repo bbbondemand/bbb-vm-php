@@ -3,5 +3,6 @@ require __DIR__ . '/../vendor/autoload.php';
 
 function d(...$args): void {
     var_dump(...$args);
+    debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
     exit;
 }
