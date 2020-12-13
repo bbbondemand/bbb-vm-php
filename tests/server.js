@@ -42,24 +42,24 @@
  * @license See the LICENSE file that was distributed with this source code.
  */
 
-var http = require('http');
-var url = require('url');
+const http = require('http');
+const url = require('url');
 
 /**
  * Guzzle node.js server
  * @class
  */
-var GuzzleServer = function(port, log) {
+const GuzzleServer = function(port, log) {
 
     this.port = port;
     this.log = log;
     this.responses = [];
     this.requests = [];
-    var that = this;
+    const that = this;
 
-    var md5 = function(input) {
-        var crypto = require('crypto');
-        var hasher = crypto.createHash('md5');
+    const md5 = function(input) {
+        const crypto = require('crypto');
+        const hasher = crypto.createHash('md5');
         hasher.update(input);
         return hasher.digest('hex');
     };
@@ -71,14 +71,14 @@ var GuzzleServer = function(port, log) {
      * requiring the dependency to http-auth on standard operations, and the
      * performance hit at startup.
      */
-    var auth;
+    let auth;
 
     /**
      * Provides authentication handlers (Basic, Digest).
      */
-    var loadAuthentifier = function(type, options) {
-        var typeId = type;
-        if (type == 'digest') {
+    const loadAuthentifier = function(type, options) {
+        let typeId = type;
+        if (type === 'digest') {
             typeId += '.'+(options && options.qop ? options.qop : 'none');
         }
         if (!loadAuthentifier[typeId]) {
@@ -86,14 +86,14 @@ var GuzzleServer = function(port, log) {
                 try {
                     auth = require('http-auth');
                 } catch (e) {
-                    if (e.code == 'MODULE_NOT_FOUND') {
+                    if (e.code === 'MODULE_NOT_FOUND') {
                         return;
                     }
                 }
             }
             switch (type) {
                 case 'digest':
-                    var digestParams = {
+                    const digestParams = {
                         realm: 'Digest Test',
                         login: 'me',
                         password: 'test'
@@ -110,10 +110,10 @@ var GuzzleServer = function(port, log) {
         return loadAuthentifier[typeId];
     };
 
-    var firewallRequest = function(request, req, res, requestHandlerCallback) {
-        var securedAreaUriParts = request.uri.match(/^\/secure\/by-(digest)(\/qop-([^\/]*))?(\/.*)$/);
+    const firewallRequest = function(request, req, res, requestHandlerCallback) {
+        const securedAreaUriParts = request.uri.match(/^\/secure\/by-(digest)(\/qop-([^\/]*))?(\/.*)$/);
         if (securedAreaUriParts) {
-            var authentifier = loadAuthentifier(securedAreaUriParts[1], { qop: securedAreaUriParts[2] });
+            const authentifier = loadAuthentifier(securedAreaUriParts[1], { qop: securedAreaUriParts[2] });
             if (!authentifier) {
                 res.writeHead(501, 'HTTP authentication not implemented', { 'Content-Length': 0 });
                 res.end();
@@ -128,12 +128,12 @@ var GuzzleServer = function(port, log) {
         }
     };
 
-    var controlRequest = function(request, req, res) {
-        if (req.url == '/guzzle-server/perf') {
+    const controlRequest = function(request, req, res) {
+        if (req.url === '/guzzle-server/perf') {
             res.writeHead(200, 'OK', {'Content-Length': 16});
             res.end('Body of response');
-        } else if (req.method == 'DELETE') {
-            if (req.url == '/guzzle-server/requests') {
+        } else if (req.method === 'DELETE') {
+            if (req.url === '/guzzle-server/requests') {
                 // Clear the received requests
                 that.requests = [];
                 res.writeHead(200, 'OK', { 'Content-Length': 0 });
@@ -141,7 +141,7 @@ var GuzzleServer = function(port, log) {
                 if (that.log) {
                     console.log('Flushing requests');
                 }
-            } else if (req.url == '/guzzle-server') {
+            } else if (req.url === '/guzzle-server') {
                 // Shutdown the server
                 res.writeHead(200, 'OK', { 'Content-Length': 0, 'Connection': 'close' });
                 res.end();
@@ -150,16 +150,16 @@ var GuzzleServer = function(port, log) {
                 }
                 that.server.close();
             }
-        } else if (req.method == 'GET') {
+        } else if (req.method === 'GET') {
             if (req.url === '/guzzle-server/requests') {
                 if (that.log) {
                     console.log('Sending received requests');
                 }
                 // Get received requests
-                var body = JSON.stringify(that.requests);
+                const body = JSON.stringify(that.requests);
                 res.writeHead(200, 'OK', { 'Content-Length': body.length });
                 res.end(body);
-            } else if (req.url == '/guzzle-server/read-timeout') {
+            } else if (req.url === '/guzzle-server/read-timeout') {
                 if (that.log) {
                     console.log('Sleeping');
                 }
@@ -169,7 +169,7 @@ var GuzzleServer = function(port, log) {
                     res.end("slept 60 seconds\n");
                 }, 60*1000);
             }
-        } else if (req.method == 'PUT' && req.url == '/guzzle-server/responses') {
+        } else if (req.method === 'PUT' && req.url === '/guzzle-server/responses') {
             if (that.log) {
                 console.log('Adding responses...');
             }
@@ -180,7 +180,7 @@ var GuzzleServer = function(port, log) {
                 res.writeHead(400, 'NO RESPONSES IN REQUEST', { 'Content-Length': 0 });
             } else {
                 that.responses = JSON.parse(request.body);
-                for (var i = 0; i < that.responses.length; i++) {
+                for (let i = 0; i < that.responses.length; i++) {
                     if (that.responses[i].body) {
                         that.responses[i].body = Buffer.from(that.responses[i].body, 'base64');
                     }
@@ -194,10 +194,10 @@ var GuzzleServer = function(port, log) {
         }
     };
 
-    var receivedRequest = function(request, req, res) {
+    const receivedRequest = function(request, req, res) {
         if (req.url.indexOf('/guzzle-server') === 0) {
             controlRequest(request, req, res);
-        } else if (req.url.indexOf('/guzzle-server') == -1 && !that.responses.length) {
+        } else if (req.url.indexOf('/guzzle-server') === -1 && !that.responses.length) {
             res.writeHead(500);
             res.end('No responses in queue');
         } else {
@@ -205,7 +205,7 @@ var GuzzleServer = function(port, log) {
                 console.log('Returning response from queue and adding request');
             }
             that.requests.push(request);
-            var response = that.responses.shift();
+            const response = that.responses.shift();
             res.writeHead(response.status, response.reason, response.headers);
             res.end(response.body);
         }
@@ -215,8 +215,8 @@ var GuzzleServer = function(port, log) {
 
         that.server = http.createServer(function(req, res) {
 
-            var parts = url.parse(req.url, false);
-            var request = {
+            const parts = url.parse(req.url, false);
+            const request = {
                 http_method: req.method,
                 scheme: parts.scheme,
                 uri: parts.pathname,
@@ -247,7 +247,7 @@ var GuzzleServer = function(port, log) {
 
 // Get the port from the arguments
 port = process.argv.length >= 3 ? process.argv[2] : 8126;
-log = process.argv.length >= 4 ? process.argv[3] : false;
+log = process.argv.length >= 4 ? process.argv[3] : true;
 
 // Start the server
 server = new GuzzleServer(port, log);
