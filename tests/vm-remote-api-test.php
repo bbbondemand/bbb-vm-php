@@ -22,7 +22,7 @@ ini_set('assert.exception', '1');
 
 function checkSuccessResult(Vm $vm, array $result, bool $dataIsNull = false): array {
     assert(count($result) === 2);
-    assert(200 === $vm->getResponse()->getStatusCode());
+    assert(200 === $vm->getLastResponse()->getStatusCode());
     assert(Vm::SUCCESS_STATUS === $result['status']);
     if ($dataIsNull) {
         assert($result['data'] === null, print_r($result['data'], true));

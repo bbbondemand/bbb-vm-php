@@ -1,13 +1,14 @@
 <?php declare(strict_types=1);
-/**
- * Original code of the Server was taken from the Guzzle project: https://github.com/guzzle/guzzle/blob/6.5.5/tests/Server.php, see https://github.com/guzzle/guzzle/blob/6.5.5/LICENSE
- */
 namespace BBBondemand\Test;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 
+/**
+ * Original code of the Server was taken from the Guzzle project: https://github.com/guzzle/guzzle/blob/6.5.5/tests/Server.php, see https://github.com/guzzle/guzzle/blob/6.5.5/LICENSE
+ */
 /**
  * The Server class is used to control a scripted webserver using node.js that
  * will respond to HTTP requests with queued responses.
@@ -68,6 +69,10 @@ class Server {
         self::getClient()->request('PUT', 'guzzle-server/responses', [
             'json' => $data
         ]);
+    }
+
+    public static function enqueueResponse(string $responseStr) {
+        self::enqueue([new Response(200, ['Content-Length' => strlen($responseStr)], $responseStr)]);
     }
 
     /**

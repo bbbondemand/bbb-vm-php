@@ -17,7 +17,7 @@ class InstancesApiRoute {
     public const CREATE = 'instances';
     public const GET = 'instances/{instanceID}';
     public const DELETE = 'instances/{instanceID}';
-    public const START = 'instances/{instanceID}';
-    public const STOP = 'instances/{instanceID}';
+    public const START = 'instances/start';
+    public const STOP = 'instances/stop';
     public const HISTORY = 'instances/{instanceID}/history';
 }

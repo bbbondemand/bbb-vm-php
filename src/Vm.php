@@ -8,7 +8,6 @@
  *
  * @author Richard Phillips
  */
-
 namespace BBBondemand;
 
 use Exception;
@@ -22,7 +21,7 @@ use function json_decode;
 
 class Vm {
     public const SUCCESS_STATUS = 'success';
-    public const ERR_STATUS = 'error'; // internal error like exception
+    public const ERR_STATUS = 'error';
 
     public const UNKNOWN_ERR = 1;
     public const INVALID_RESPONSE_STATUS_ERR = 2;
@@ -37,7 +36,7 @@ class Vm {
     /**
      * @var UrlBuilder
      */
-    protected $urlBuilder;
+    private $urlBuilder;
 
     /**
      * @var
@@ -110,16 +109,14 @@ class Vm {
 
     public function startInstance(string $instanceId): array {
         $this->checkInstanceId($instanceId);
-        // todo: remove url parameter as data is passed in payload
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START, ['instanceID' => $instanceId]);
-        return $this->normalizeResult($this->sendPatch($url, ['name' => $instanceId]), false);
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START);
+        return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
     }
 
     public function stopInstance(string $instanceId): array {
         $this->checkInstanceId($instanceId);
-        // todo: remove url parameter as data is passed in payload
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP, ['instanceID' => $instanceId]);
-        return $this->normalizeResult($this->sendPut($url, ['name' => $instanceId]), false);
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP);
+        return $this->normalizeResult($this->sendPut($url, ['instanceID' => $instanceId]), false);
     }
 
     public function getInstanceHistory() {
@@ -182,6 +179,15 @@ class Vm {
     // ------------------------------------------------------------------------
     // # Utility methods:
 
+    public function setUrlBuilder($urlBuilder) {
+        $this->urlBuilder = $urlBuilder;
+        return $this;
+    }
+
+    public function getUrlBuilder() {
+        return $this->urlBuilder;
+    }
+
     /**
      * @param string $httpMethod
      * @param string $url
@@ -210,7 +216,7 @@ class Vm {
     /**
      * @return ResponseInterface|null
      */
-    public function getResponse() {
+    public function getLastResponse() {
         return $this->response;
     }
 

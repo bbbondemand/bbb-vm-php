@@ -10,8 +10,6 @@ function d(...$args): void {
 }
 
 function startServer(): void {
-    require __DIR__ . '/Server.php';
-
     Server::start();
     register_shutdown_function(function () {
         Server::stop();
