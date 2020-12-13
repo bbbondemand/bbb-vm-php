@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
+namespace BBBondemand\Test;
 
-namespace BBBondemand\Util;
-
+use BBBondemand\UrlBuilder;
 use PHPUnit\Framework\TestCase;
 
 class UrlBuilderTest extends TestCase {

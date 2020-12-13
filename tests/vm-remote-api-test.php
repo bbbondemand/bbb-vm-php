@@ -1,8 +1,9 @@
 <?php declare(strict_types=1);
-namespace BBBondemand;
+namespace BBBondemand\Test;
 // These are integration tests of the remote VM REST API.
 
 use BBBondemand\Enums\InstanceStatus;
+use BBBondemand\Vm;
 use Closure;
 use PHPUnit\TextUI\XmlConfiguration\Loader;
 use RuntimeException;

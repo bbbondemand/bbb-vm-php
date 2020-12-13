@@ -9,8 +9,7 @@
  *
  * @author Richard Phillips
  */
-
-namespace BBBondemand\Util;
+namespace BBBondemand;
 
 /**
  * Class UrlBuilder

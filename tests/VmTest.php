@@ -1,10 +1,11 @@
 <?php declare(strict_types=1);
-namespace BBBondemand;
+namespace BBBondemand\Test;
 
 use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\RecordingsApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
-use BBBondemand\Util\UrlBuilder;
+use BBBondemand\UrlBuilder;
+use BBBondemand\Vm;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

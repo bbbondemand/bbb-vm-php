@@ -16,7 +16,7 @@ use BBBondemand\Enums\InstancesApiRoute;
 use BBBondemand\Enums\MeetingsApiRoute;
 use BBBondemand\Enums\RecordingsApiRoute;
 use BBBondemand\Enums\RegionsApiRoute;
-use BBBondemand\Util\UrlBuilder;
+use BBBondemand\UrlBuilder;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -163,7 +163,7 @@ class Vm {
     public function unpublishRecording(string $recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::UNPUBLISH, ['recordingID' => $recordingId]);
-        $this->sendPatch($url, ['recordingID' => $recordingId]);
+        return $this->sendPatch($url, ['recordingID' => $recordingId]);
     }
 
     public function deleteRecording(string $recordingId): array {

@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
-
-namespace BBBondemand;
+namespace BBBondemand\Test;
 
 use RuntimeException;
 
