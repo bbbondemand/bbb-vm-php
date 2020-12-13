@@ -11,12 +11,6 @@
 
 namespace BBBondemand;
 
-use BBBondemand\Enums\BillingApiRoute;
-use BBBondemand\Enums\InstancesApiRoute;
-use BBBondemand\Enums\MeetingsApiRoute;
-use BBBondemand\Enums\RecordingsApiRoute;
-use BBBondemand\Enums\RegionsApiRoute;
-use BBBondemand\UrlBuilder;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;

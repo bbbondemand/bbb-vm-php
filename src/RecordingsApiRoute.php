@@ -10,7 +10,7 @@
  * @author Richard Phillips
  */
 
-namespace BBBondemand\Enums;
+namespace BBBondemand;
 
 class RecordingsApiRoute {
     public const LIST = 'recordings';

@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 namespace BBBondemand\Test;
 
-use BBBondemand\Enums\InstancesApiRoute;
-use BBBondemand\Enums\RecordingsApiRoute;
-use BBBondemand\Enums\RegionsApiRoute;
+use BBBondemand\InstancesApiRoute;
+use BBBondemand\RecordingsApiRoute;
+use BBBondemand\RegionsApiRoute;
 use BBBondemand\UrlBuilder;
 use BBBondemand\Vm;
 use InvalidArgumentException;

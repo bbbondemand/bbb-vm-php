@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace BBBondemand\Enums;
+namespace BBBondemand;
 
 class InstanceStatus {
     public const DELETED = 'DELETED';

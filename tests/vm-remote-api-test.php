@@ -2,7 +2,7 @@
 namespace BBBondemand\Test;
 // These are integration tests of the remote VM REST API.
 
-use BBBondemand\Enums\InstanceStatus;
+use BBBondemand\InstanceStatus;
 use BBBondemand\Vm;
 use Closure;
 use PHPUnit\TextUI\XmlConfiguration\Loader;

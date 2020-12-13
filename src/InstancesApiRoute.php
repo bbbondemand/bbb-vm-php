@@ -10,9 +10,14 @@
  * @author Richard Phillips
  */
 
-namespace BBBondemand\Enums;
+namespace BBBondemand;
 
-class MeetingsApiRoute {
-    public const LIST = 'meetings';
-    public const GET = 'meetings/{meetingID}';
+class InstancesApiRoute {
+    public const LIST = 'instances';
+    public const CREATE = 'instances';
+    public const GET = 'instances/{instanceID}';
+    public const DELETE = 'instances/{instanceID}';
+    public const START = 'instances/{instanceID}';
+    public const STOP = 'instances/{instanceID}';
+    public const HISTORY = 'instances/{instanceID}/history';
 }

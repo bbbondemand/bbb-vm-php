@@ -10,8 +10,9 @@
  * @author Richard Phillips
  */
 
-namespace BBBondemand\Enums;
+namespace BBBondemand;
 
-class RegionsApiRoute {
-    public const LIST = 'regions';
+class MeetingsApiRoute {
+    public const LIST = 'meetings';
+    public const GET = 'meetings/{meetingID}';
 }
