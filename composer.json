@@ -31,15 +31,5 @@
         "psr-4": {
             "BBBondemand\\Test\\": "tests"
         }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "BBBondemand\\BBBondemandServiceProvider"
-            ],
-            "aliases": {
-                "BBBondemand": "BBBondemand\\Facades\\Vm"
-            }
-        }
     }
 }
