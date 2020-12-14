@@ -12,7 +12,7 @@
 
 namespace BBBondemand;
 
-class RecordingsApiRoute {
+abstract class RecordingsApiRoute {
     public const LIST = 'recordings';
     public const GET = 'recordings/{recordingID}';
     public const PUBLISH = 'recordings/{recordingID}';

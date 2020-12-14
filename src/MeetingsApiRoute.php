@@ -12,7 +12,7 @@
 
 namespace BBBondemand;
 
-class MeetingsApiRoute {
+abstract class MeetingsApiRoute {
     public const LIST = 'meetings';
     public const GET = 'meetings/{meetingID}';
 }

@@ -6,7 +6,6 @@ use BBBondemand\RecordingsApiRoute;
 use BBBondemand\RegionsApiRoute;
 use BBBondemand\UrlBuilder;
 use BBBondemand\Vm;
-use Composer\Util\Url;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;

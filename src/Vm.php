@@ -68,8 +68,8 @@ class Vm {
 
     // ## Billing:
 
-    public function getBillingActivity(): array {
-        $url = $this->urlBuilder->buildUrl(BillingApiRoute::ACTIVITY);
+    public function getBillingSummary(): array {
+        $url = $this->urlBuilder->buildUrl(BillingApiRoute::SUMMARY);
         $result = $this->sendGet($url);
         return $this->normalizeResult($result, false);
     }
@@ -98,6 +98,12 @@ class Vm {
         return $this->normalizeResult($this->sendGet($url), false);
     }
 
+    public function stopInstance(string $instanceId): array {
+        $this->checkInstanceId($instanceId);
+        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP);
+        return $this->normalizeResult($this->sendPut($url, ['instanceID' => $instanceId]), false);
+    }
+
     public function deleteInstance(string $instanceId): array {
         $this->checkInstanceId($instanceId);
         $pathParams = [
@@ -111,12 +117,6 @@ class Vm {
         $this->checkInstanceId($instanceId);
         $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START);
         return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
-    }
-
-    public function stopInstance(string $instanceId): array {
-        $this->checkInstanceId($instanceId);
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP);
-        return $this->normalizeResult($this->sendPut($url, ['instanceID' => $instanceId]), false);
     }
 
     public function getInstanceHistory() {
@@ -166,7 +166,7 @@ class Vm {
     public function publishRecording(string $recordingId) {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::PUBLISH, ['recordingID' => $recordingId]);
-        $this->sendPut($url, ['recordingID' => $recordingId]);
+        return $this->sendPut($url, ['recordingID' => $recordingId]);
     }
 
     // ## Regions:

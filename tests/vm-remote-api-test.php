@@ -5,6 +5,7 @@ namespace BBBondemand\Test;
 use BBBondemand\InstanceStatus;
 use BBBondemand\Vm;
 use Closure;
+use PHPUnit\Framework\IncompleteTestError;
 use PHPUnit\TextUI\XmlConfiguration\Loader;
 use RuntimeException;
 use UnexpectedValueException;
@@ -19,6 +20,22 @@ if (ini_get('zend.assertions') !== '1') {
 }
 ini_set('assert.active', '1');
 ini_set('assert.exception', '1');
+
+abstract class MachineSize {
+    public const SMALL = 'Small';
+    public const STANDARD = 'Standard';
+    public const LARGE = 'Large';
+    public const XLARGE = 'Xlarge';
+
+    public static function all(): array {
+        return ['Small', 'Standard', 'Large', 'Xlarge'];
+    }
+}
+
+abstract class RecordingState {
+    public const PUBLISHED = 'published';
+    public const UNPUBLISHED = 'unpublished';
+}
 
 function checkSuccessResult(Vm $vm, array $result, bool $dataIsNull = false): array {
     assert(count($result) === 2);
@@ -54,10 +71,21 @@ function checkArrHasNotEmptyItems(array $expectedKeys, array $arr) {
  * @return mixed
  */
 function test(string $test, Closure $fn, $args = null, int $indent = 0) {
-    writeLnIndent("Testing $test...", $indent);
-    $res = $fn($args);
-    writeLnIndent("OK", $indent);
-    return $res;
+    $test = preg_replace("~\s+~si", ' ', $test);
+    writeLnIndent("Running: " . $test . '...', $indent);
+    try {
+        $res = $fn($args);
+        writeLnIndent("Done: $test\n", $indent);
+        return $res;
+    } catch (IncompleteTestError $e) {
+        if (PHP_SAPI === 'cli') {
+            $redColor = "\033[0;31m";
+            $noColor = "\033[0m";
+        } else {
+            $redColor = $noColor = '';
+        }
+        writeLnIndent("{$redColor}Skipped incomplete test: $test$noColor\n", $indent);
+    }
 }
 
 function deleteAllInstances(Vm $vm): int {
@@ -111,7 +139,7 @@ function checkInstanceStatus(Vm $vm, string $instanceId, string $expectedStatus)
     assert($vm->getInstance($instanceId)['data']['Status'] === $expectedStatus, "Precondition: instance '$instanceId' has '$expectedStatus' Status");
 }
 
-function checkCreationResult(Vm $vm, array $creationResult): array {
+function checkCreateInstanceResult(Vm $vm, array $creationResult): array {
     checkSuccessResult($vm, $creationResult);
     $creationData = $creationResult['data'];
     assert(4, $creationData);
@@ -124,18 +152,15 @@ function checkCreationResult(Vm $vm, array $creationResult): array {
 
 function checkInstanceData(array $instanceData): void {
     assert(count($instanceData) >= 8, "Instance details size");
-    assert((bool)preg_match('~^[a-z0-9]{21}$~', $instanceData['Name']));
+    assert((bool)preg_match('~^[a-z0-9]{21}$~', $instanceData['ID']));
     assert(in_array($instanceData['Status'], InstanceStatus::all(), true));
-    assert(strlen($instanceData['Hostname']) > 0);
-    assert(in_array(strtoupper($instanceData['MachineSize']), ['SMALL', 'STANDARD', 'LARGE', 'XLARGE'])); // todo fix case, remove strtoupper()
-    assert(strlen($instanceData['Region']) > 0);
     assert($instanceData['Started'] > (time() - (365 * 2 * 24 * 60 * 60)));
-    if ($instanceData['Status'] === InstanceStatus::DELETED) {
-        assert($instanceData['Finished'] > 0);
-        assert($instanceData['Seconds'] > 0);
-    }
+    assert(strlen($instanceData['Hostname']) > 0);
     assert(strlen($instanceData['Secret']) > 0);
-    assert(count($instanceData['Turn']) > 0);
+    assert(strlen($instanceData['Region']) > 0);
+    assert(isset($instanceData['Tags']));
+    assert(in_array($instanceData['MachineSize'], MachineSize::all(), true));
+    assert(is_bool($instanceData['ManagedRecordings']));
 }
 
 function checkMeetingData(array $meetingData): void {
@@ -157,7 +182,7 @@ function checkMeetingData(array $meetingData): void {
         'EndTime',
         'ParticipantCount',
         //'ListenerCount': can be missing
-        //'VideoCount',: can be missing
+        //'VideoCount': can be missing
         //'MaxUsers': can be missing
         'ModeratorCount',
         'Attendees',
@@ -188,7 +213,7 @@ function checkRecordingData(array $recordingData) {
         "RecordID",
         "MeetingID",
         "Name",
-        "Published",
+        //"Published": can be missing
         "State",
         "StartTime",
         "EndTime",
@@ -207,6 +232,10 @@ function checkRecordingData(array $recordingData) {
     }
 }
 
+function markTestIncomplete(string $test, int $lineNum) {
+    throw new IncompleteTestError($test . ', line: ' . $lineNum);
+}
+
 function main(): void {
     $vm = mkVm();
 
@@ -220,60 +249,28 @@ function main(): void {
         }, 0), 0);
     writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
 
-    test("Vm::getMeetings(), Vm::getMeeting(), Vm::getRecordings(), Vm::getRecordingById(), Vm::createInstance() with ManagedRecordings and with Tags", function () use ($vm) {
-        // GET /meetings
-        $result = checkSuccessResult($vm, $vm->getMeetings());
-        // There should be always not empty list of meetings for testing:
-        $meeting = null;
-        foreach ($result['data'] as $meetingData) {
-            checkMeetingData($meetingData);
-            $meeting = $meetingData;
-        }
-        assert(is_array($meeting));
-
-        // GET /meetings/{meetingID}
-        $result = checkSuccessResult($vm, $vm->getMeeting($meeting['MeetingID']));
-        checkMeetingData($result['data']);
-
-        // GET /recordings
-        $result = checkSuccessResult($vm, $vm->getRecordings());
-        // There should be always not empty list of recordings for testing:
-        foreach ($result['data'] as $recordingData) {
-            checkRecordingData($recordingData);
-        }
-
-        // todo
-
-        return;
-
-        // On Demand cloud meetings
-        $result = $vm->createInstance([
-            'ManageRecordings' => true,
-            'Tags' => 'foo,bar',
-            /*
-                Host - string - fully qualified domain of the instance
-                Name - string - unique name for the instance, used by other API methods
-                Secret - string - unique random secret to interact with the running BBB instance
-                TestUrl - string - a link to an API testing website which makes it easy for developers to check and test the BBB instance. Ignore if not useful to you.
-
-             */
-        ]);
-        checkCreationResult($vm, $result);
-        waitInstanceStatus($vm, $result['data']['Name'], InstanceStatus::AVAILABLE);
-    });
-
-    test("Vm::getRegions()", function () use ($vm) {
-        $result = checkSuccessResult($vm, $vm->getRegions());
-        foreach ($result['data'] as $key => $regionData) {
-            assert((bool) preg_match('~^[-0-9a-z]+$~si', $key));
-            checkArrHasNotEmptyItems(['Name', 'Town', 'Continent'], $regionData);
+    // Billing
+    test("Vm::getBillingSummary()", function () use ($vm) {
+        $result = checkSuccessResult($vm, $vm->getBillingSummary());
+        foreach ($result['data'] as $billingActivityData) {
+            checkArrHasNotEmptyItems(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData);
         }
     });
 
-    test("Vm::getInstances(), Vm::createInstance() without ManagedRecordings and without Tags, Vm::getInstance(), Vm::deleteInstance(), Vm::startInstance(), Vm::stopInstance(), Vm::getInstanceHistory()", function () use ($vm) {
+    // Instances
+    test("Vm::getInstances(),
+        Vm::createInstance() without ManagedRecordings and without Tags,
+        Vm::createInstance() with ManagedRecordings and with Tags,
+        Vm::getInstance(),
+        Vm::deleteInstance(),
+        Vm::startInstance(),
+        Vm::stopInstance(),
+        Vm::getInstanceHistory()", function () use ($vm) {
         $indent = 1;
 
         test("Vm::deleteInstance(): delete " . InstanceStatus::STOPPED . " instance", function () use ($indent, $vm) {
+            markTestIncomplete("Vm::deleteInstance(): delete " . InstanceStatus::STOPPED . " instance", __LINE__);
+
             $instanceId = $vm->createInstance()['data']['ID'];
             waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
 
@@ -284,19 +281,19 @@ function main(): void {
             waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent + 1);
         }, null, $indent);
 
-        d('ok');
-        //d($vm->getInstances()['data']);
-//        d('ok');
-
         $instanceId = test("Vm::createInstance() without ManagedRecordings and without Tags", function () use ($indent, $vm) {
+            markTestIncomplete("Vm::createInstance() without ManagedRecordings and without Tags", __LINE__);
+
             $result = $vm->createInstance();
-            checkCreationResult($vm, $result);
+            checkCreateInstanceResult($vm, $result);
             $instanceId = $result['data']['ID'];
             waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
             return $instanceId;
         }, null, $indent);
 
         test("Vm::getInstance()", function () use ($vm, $instanceId) {
+            markTestIncomplete("Vm::getInstance()", __LINE__);
+
             checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE);
             $result = $vm->getInstance($instanceId);
             checkSuccessResult($vm, $result);
@@ -313,6 +310,7 @@ function main(): void {
         }, null, $indent);
 
         test("Vm::stopInstance(): stop " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $vm, $instanceId) {
+            markTestIncomplete("Vm::stopInstance(): stop " . InstanceStatus::AVAILABLE . " instance", __LINE__);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE);
             $result = $vm->stopInstance($instanceId);
             checkSuccessResult($vm, $result);
@@ -321,14 +319,17 @@ function main(): void {
         }, null, $indent);
 
         test("Vm::stopInstance(): stop " . InstanceStatus::STOPPED . " instance", function () use ($vm, $instanceId) {
+            markTestIncomplete("Vm::stopInstance(): stop " . InstanceStatus::STOPPED . " instance", __LINE__);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED);
             $result = $vm->stopInstance($instanceId);
+            // @todo: fix parameters:
             checkErrorResult($vm, $result);
             assert('this instance was found to be already stopped' === $result['data']);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED); // should be not changed
         }, null, $indent);
 
         test("Vm::startInstance(): start " . InstanceStatus::STOPPED . " instance", function () use ($indent, $vm, $instanceId) {
+            markTestIncomplete("Vm::startInstance(): start " . InstanceStatus::STOPPED . " instance", __LINE__);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED);
             $result = $vm->startInstance($instanceId);
             checkSuccessResult($vm, $result);
@@ -337,20 +338,108 @@ function main(): void {
         }, null, $indent);
 
         test("Vm::startInstance(): start " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $vm, $instanceId) {
+            markTestIncomplete("Vm::startInstance(): start " . InstanceStatus::AVAILABLE . " instance", __LINE__);
             waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
             $result = $vm->startInstance($instanceId);
             // todo: fix message "unable to start the stopped instance"
+            // @todo: fix parameters:
             checkErrorResult($vm, $result);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE); // should be not changed
         }, null, $indent);
 
         test("Vm::deleteInstance(): delete " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $instanceId, $vm) {
+            markTestIncomplete("Vm::deleteInstance(): delete " . InstanceStatus::AVAILABLE . " instance", __LINE__);
             checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE);
             $result = $vm->deleteInstance($instanceId);
             checkSuccessResult($vm, $result);
             assert(null === $result['data']);
             waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent + 1);
         }, null, $indent);
+
+        test("Vm::createInstance() with ManagedRecordings and with Tags", function () use ($vm) {
+            markTestIncomplete("Vm::createInstance() with ManagedRecordings and with Tags", __LINE__);
+
+            // On Demand cloud meetings
+            $result = $vm->createInstance([
+                'ManageRecordings' => true,
+                'Tags' => 'foo,bar',
+                /*
+                    Host - string - fully qualified domain of the instance
+                    Name - string - unique name for the instance, used by other API methods
+                    Secret - string - unique random secret to interact with the running BBB instance
+                    TestUrl - string - a link to an API testing website which makes it easy for developers to check and test the BBB instance. Ignore if not useful to you.
+
+                 */
+            ]);
+            checkCreateInstanceResult($vm, $result);
+            waitInstanceStatus($vm, $result['data']['ID'], InstanceStatus::AVAILABLE);
+        }, null, $indent);
+    });
+
+    // Meetings
+    test("Vm::getMeetings(), Vm::getMeeting()", function () use ($vm) {
+        // GET /meetings
+        $result = checkSuccessResult($vm, $vm->getMeetings());
+
+        // There should be always not empty list of meetings for testing:
+        $meeting = null;
+        foreach ($result['data'] as $meetingData) {
+            checkMeetingData($meetingData);
+            $meeting = $meetingData;
+        }
+        assert(is_array($meeting));
+
+        // GET /meetings/{meetingID}
+        $result = checkSuccessResult($vm, $vm->getMeeting($meeting['MeetingID']));
+        checkMeetingData($result['data']);
+    });
+
+    // Recordings
+    test("Vm::getRecordings(),
+        Vm::getRecording(),
+        Vm::unpublishRecording(),
+        Vm::deleteRecording(),
+        Vm::publishRecording()", function () use ($vm) {
+
+        // GET /recordings
+        $getRecordingsResult = checkSuccessResult($vm, $vm->getRecordings());
+
+        // There should be always not empty list of recordings for testing:
+        $publishedRecording = $unpublishedRecording = null;
+        foreach ($getRecordingsResult['data'] as $recordingData) {
+            checkRecordingData($recordingData);
+            if ($recordingData['State'] === RecordingState::PUBLISHED) {
+                $publishedRecording = $recordingData;
+            } else {
+                $unpublishedRecording = $recordingData;
+            }
+        }
+
+        // Need to have at least two recordings for testing publishing and unpublishing:
+        assert(is_array($publishedRecording) && is_array($unpublishedRecording));
+
+        // It does not matter which recording to use for testing getRecording() - it can either published or unpublished one and we use the published recording.
+        $result = checkSuccessResult($vm, $vm->getRecording($publishedRecording['RecordID']));
+        checkRecordingData($result['data']);
+
+        // @todo: Compare $getRecordingResult with the new result.
+
+        checkSuccessResult($vm, $vm->publishRecording($unpublishedRecording['RecordID']));
+
+        checkSuccessResult($vm, $vm->unpublishRecording($publishedRecording['RecordID']));
+
+        foreach ([$unpublishedRecording, $publishedRecording] as $recording) {
+            checkSuccessResult($vm, $vm->deleteRecording($recording['RecordID']));
+        }
+    });
+
+    // Regions
+    test("Vm::getRegions()", function () use ($vm) {
+        $result = checkSuccessResult($vm, $vm->getRegions());
+        foreach ($result['data'] as $key => $regionData) {
+            assert((bool) preg_match('~^[-0-9a-z]+$~si', $key));
+            checkArrHasNotEmptyItems(['Name', 'Town', 'Continent'], $regionData);
+        }
     });
 }
 

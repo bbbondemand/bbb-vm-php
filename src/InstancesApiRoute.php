@@ -12,7 +12,7 @@
 
 namespace BBBondemand;
 
-class InstancesApiRoute {
+abstract class InstancesApiRoute {
     public const LIST = 'instances';
     public const CREATE = 'instances';
     public const GET = 'instances/{instanceID}';

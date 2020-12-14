@@ -12,6 +12,6 @@
 
 namespace BBBondemand;
 
-class RegionsApiRoute {
+abstract class RegionsApiRoute {
     public const LIST = 'regions';
 }
