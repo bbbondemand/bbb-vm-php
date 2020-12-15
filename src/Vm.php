@@ -69,7 +69,7 @@ class Vm {
     // ## Billing:
 
     public function getBillingSummary(): array {
-        $url = $this->urlBuilder->buildUrl(BillingApiRoute::SUMMARY);
+        $url = $this->urlBuilder->buildUrl(Endpoint::BILLING_SUMMARY);
         $result = $this->sendGet($url);
         return $this->normalizeResult($result, false);
     }
@@ -78,49 +78,50 @@ class Vm {
 
     public function getInstances(array $queryParams = null): array {
         $queryString = http_build_query((array)$queryParams);
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::LIST, null, $queryString);
+        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_INSTANCES, null, $queryString);
         $result = $this->sendGet($url);
         return $this->normalizeResult($result, true);
     }
 
     public function createInstance(array $params = null): array {
-        $params = array_merge(["MachineSize" => "small"], (array)$params);
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::CREATE);
+        $params = array_merge(["MachineSize" => MachineSize::SMALL], (array)$params);
+        $params['MachineSize'] = strtolower($params['MachineSize']);
+        $url = $this->urlBuilder->buildUrl(Endpoint::CREATE_INSTANCE);
         return $this->normalizeResult($this->sendPost($url, $params), false);
     }
 
-    public function getInstance(string $instanceId): array {
+    public function getInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
         $pathParams = [
             'instanceID' => $instanceId,
         ];
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, $pathParams);
+        $url = $this->urlBuilder->buildUrl(Endpoint::GET_INSTANCE, $pathParams);
         return $this->normalizeResult($this->sendGet($url), false);
     }
 
-    public function stopInstance(string $instanceId): array {
+    public function stopInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::STOP);
+        $url = $this->urlBuilder->buildUrl(Endpoint::STOP_INSTANCE);
         return $this->normalizeResult($this->sendPut($url, ['instanceID' => $instanceId]), false);
     }
 
-    public function deleteInstance(string $instanceId): array {
+    public function deleteInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
         $pathParams = [
             'instanceID' => $instanceId,
         ];
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::DELETE, $pathParams);
+        $url = $this->urlBuilder->buildUrl(Endpoint::DELETE_INSTANCE, $pathParams);
         return $this->normalizeResult($this->sendDelete($url), false);
     }
 
-    public function startInstance(string $instanceId): array {
+    public function startInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::START);
+        $url = $this->urlBuilder->buildUrl(Endpoint::START_INSTANCE);
         return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
     }
 
-    public function getInstanceHistory() {
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::HISTORY);
+    public function getInstanceHistory($instanceId) {
+        $url = $this->urlBuilder->buildUrl(Endpoint::INSTANCE_HISTORY, ['instanceID' => $instanceId]);
         $result = $this->sendGet($url);
         return $this->normalizeResult($result, false);
     }
@@ -128,51 +129,51 @@ class Vm {
     // ## Meetings:
 
     public function getMeetings(): array {
-        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::LIST);
+        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_MEETINGS);
         return $this->normalizeResult($this->sendGet($url), true);
     }
 
-    public function getMeeting(string $meetingId): array {
-        $url = $this->urlBuilder->buildUrl(MeetingsApiRoute::GET, ['meetingID' => $meetingId]);
+    public function getMeeting($meetingId): array {
+        $url = $this->urlBuilder->buildUrl(Endpoint::GET_MEETING, ['meetingID' => $meetingId]);
         return $this->normalizeResult($this->sendGet($url), false);
     }
 
     // ## Recordings:
 
     public function getRecordings(): array {
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::LIST);
+        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_RECORDINGS);
         $result = $this->sendGet($url);
         return $this->normalizeResult($result, true);
     }
 
-    public function getRecording(string $recordingId): array {
+    public function getRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::GET_RECORDING, ['recordingID' => $recordingId]);
         return $this->normalizeResult($this->sendGet($url), false);
     }
 
-    public function unpublishRecording(string $recordingId): array {
+    public function unpublishRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::UNPUBLISH, ['recordingID' => $recordingId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::UNPUBLISH_RECORDING, ['recordingID' => $recordingId]);
         return $this->sendPatch($url, ['recordingID' => $recordingId]);
     }
 
-    public function deleteRecording(string $recordingId): array {
+    public function deleteRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::DELETE, ['recordingID' => $recordingId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::DELETE_RECORDING, ['recordingID' => $recordingId]);
         return $this->sendDelete($url);
     }
 
-    public function publishRecording(string $recordingId) {
+    public function publishRecording($recordingId) {
         $this->checkRecordingId($recordingId);
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::PUBLISH, ['recordingID' => $recordingId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::PUBLISH_RECORDING, ['recordingID' => $recordingId]);
         return $this->sendPut($url, ['recordingID' => $recordingId]);
     }
 
     // ## Regions:
 
     public function getRegions(): array {
-        $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
+        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_REGIONS);
         return $this->normalizeResult($this->sendGet($url), true);
     }
 

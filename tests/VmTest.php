@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 namespace BBBondemand\Test;
 
-use BBBondemand\InstancesApiRoute;
-use BBBondemand\RecordingsApiRoute;
-use BBBondemand\RegionsApiRoute;
+use BBBondemand\Endpoint;
 use BBBondemand\UrlBuilder;
 use BBBondemand\Vm;
 use GuzzleHttp\Client;
@@ -46,7 +44,7 @@ class VmTest extends TestCase {
     }
 
     public function testHttp_Send_SuccessResult() {
-        $url = $this->urlBuilder->buildUrl(RegionsApiRoute::LIST);
+        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_REGIONS);
         $result = $this->vm->send('GET', $url);
         $this->checkSuccessResult($result);
     }
@@ -84,7 +82,7 @@ class VmTest extends TestCase {
      * @dataProvider dataInstances_GetInstance_ServerSideChecks
      */
     public function testInstances_GetInstance_ServerSideChecks(string $expectedMessage, string $instanceId) {
-        $url = $this->urlBuilder->buildUrl(InstancesApiRoute::GET, ['instanceID' => $instanceId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::GET_INSTANCE, ['instanceID' => $instanceId]);
         $result = $this->vm->send('GET', $url);
         $this->checkErrorResult($result, 400, $expectedMessage);
     }
@@ -93,7 +91,7 @@ class VmTest extends TestCase {
         $expectedResponseData = [
             'startInstanceData' => 'ok',
         ];
-        $this->expectResponse(InstancesApiRoute::START, $expectedResponseData);
+        $this->expectResponse(Endpoint::START_INSTANCE, $expectedResponseData);
 
         $instanceId = 'testtesttesttesttest';
         $result = $this->vm->startInstance($instanceId);
@@ -124,14 +122,14 @@ class VmTest extends TestCase {
         $this->assertSame($expectedResponse, $result);
         $lastRequest = $responseHandler->getLastRequest();
         $this->assertSame('POST', $lastRequest->getMethod());
-        $this->assertSame(  $this->vm->getUrlBuilder()->buildUrl(InstancesApiRoute::START), $lastRequest->getUri()->__toString());
+        $this->assertSame(  $this->vm->getUrlBuilder()->buildUrl(Endpoint::START_INSTANCE), $lastRequest->getUri()->__toString());
     }
 
     public function testInstances_StopInstance_UsingStubServer() {
         $expectedResponseData = [
             'stopInstance' => 'ok',
         ];
-        $this->expectResponse(InstancesApiRoute::STOP, $expectedResponseData);
+        $this->expectResponse(Endpoint::STOP_INSTANCE, $expectedResponseData);
 
         $instanceId = 'testtesttesttesttest';
         $result = $this->vm->stopInstance($instanceId);
@@ -246,7 +244,7 @@ class VmTest extends TestCase {
      * @param string $recordingId
      */
     public function testRecordings_GetRecording_ServerSideChecks(string $expectedMessage, string $recordingId) {
-        $url = $this->urlBuilder->buildUrl(RecordingsApiRoute::GET, ['recordingID' => $recordingId]);
+        $url = $this->urlBuilder->buildUrl(Endpoint::GET_RECORDING, ['recordingID' => $recordingId]);
         $result = $this->vm->send('GET', $url);
         $this->checkErrorResult($result, 400, $expectedMessage);
     }
