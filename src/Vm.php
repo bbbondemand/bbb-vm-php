@@ -102,7 +102,7 @@ class Vm {
     public function stopInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
         $url = $this->urlBuilder->buildUrl(Endpoint::STOP_INSTANCE);
-        return $this->normalizeResult($this->sendPut($url, ['instanceID' => $instanceId]), false);
+        return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
     }
 
     public function deleteInstance($instanceId): array {
@@ -155,7 +155,7 @@ class Vm {
     public function unpublishRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(Endpoint::UNPUBLISH_RECORDING, ['recordingID' => $recordingId]);
-        return $this->sendPatch($url, ['recordingID' => $recordingId]);
+        return $this->sendPost($url, ['recordingID' => $recordingId]);
     }
 
     public function deleteRecording($recordingId): array {
@@ -167,7 +167,7 @@ class Vm {
     public function publishRecording($recordingId) {
         $this->checkRecordingId($recordingId);
         $url = $this->urlBuilder->buildUrl(Endpoint::PUBLISH_RECORDING, ['recordingID' => $recordingId]);
-        return $this->sendPut($url, ['recordingID' => $recordingId]);
+        return $this->sendPost($url, ['recordingID' => $recordingId]);
     }
 
     // ## Regions:

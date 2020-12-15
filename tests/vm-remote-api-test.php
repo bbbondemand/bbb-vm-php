@@ -7,6 +7,8 @@ use BBBondemand\MachineSize;
 use BBBondemand\RecordingState;
 use BBBondemand\Vm;
 use Closure;
+use DateTimeImmutable;
+use DateTimeZone;
 use PHPUnit\Framework\IncompleteTestError;
 use PHPUnit\TextUI\XmlConfiguration\Loader;
 use RuntimeException;
@@ -232,7 +234,7 @@ function main(): void {
         //writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
     });
 
-    writeLnIndent("Tests started at " . date('Y-m-d H:i:s', 'UTC') . ' (UTC)', 0);
+    writeLnIndent("Tests started at " . (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s') . ' (UTC)', 0);
 
     writeLnIndent("Total instances: " . array_reduce($vm->getInstances()['data'], function ($acc) {
             $acc += 1;
@@ -280,6 +282,8 @@ function main(): void {
             checkCreateInstanceResult($vm, $createInstanceResult);
             $instanceId = $createInstanceResult['data']['ID'];
             waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
+
+            d('ok');
 
             test("Vm::getInstance()", function () use ($instanceId, $vm) {
                 $result = checkSuccessResult($vm, $vm->getInstance($instanceId));
