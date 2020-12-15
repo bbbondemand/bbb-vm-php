@@ -11,11 +11,6 @@
  */
 namespace BBBondemand;
 
-/**
- * Class UrlBuilder
- *
- * @package BBBondemand\Util
- */
 class UrlBuilder {
     /**
      * @var string
@@ -49,7 +44,7 @@ class UrlBuilder {
      *
      * @return string
      */
-    public function buildUrl(string $route, array $pathParams = null, string $queryString = null): string {
+    public function __invoke(string $route, array $pathParams = null, string $queryString = null): string {
         $pathParams = (array)$pathParams;
         preg_match('#\{(.*?)\}#', $route, $match);
         $variable = $match[1] ?? '';

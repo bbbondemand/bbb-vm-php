@@ -44,7 +44,7 @@ class VmTest extends TestCase {
     }
 
     public function testHttp_Send_SuccessResult() {
-        $url = $this->urlBuilder->buildUrl(Endpoint::LIST_REGIONS);
+        $url = ($this->urlBuilder)(Endpoint::LIST_REGIONS);
         $result = $this->vm->send('GET', $url);
         $this->checkSuccessResult($result);
     }
@@ -82,7 +82,7 @@ class VmTest extends TestCase {
      * @dataProvider dataInstances_GetInstance_ServerSideChecks
      */
     public function testInstances_GetInstance_ServerSideChecks(string $expectedMessage, string $instanceId) {
-        $url = $this->urlBuilder->buildUrl(Endpoint::GET_INSTANCE, ['instanceID' => $instanceId]);
+        $url = ($this->urlBuilder)(Endpoint::GET_INSTANCE, ['instanceID' => $instanceId]);
         $result = $this->vm->send('GET', $url);
         $this->checkErrorResult($result, 400, $expectedMessage);
     }
@@ -101,28 +101,43 @@ class VmTest extends TestCase {
         // todo: check http method
     }
 
-    public function testInstances_StartInstance_UsingClientMock() {
+    public function testCanUseClosureAsUrlBuilder() {
         $expectedResponse = $this->mkSuccessResponse([
             'startInstanceData' => 'ok',
         ]);
         $expectedResponseJson = $this->toJson($expectedResponse);
-        // Create a mock and queue two responses.
-        $responseHandler = new MockHandler([
-            new Response(200, ['X-Foo' => 'Bar'], $expectedResponseJson),
-            new Response(202, ['Content-Length' => strlen($expectedResponseJson)]),
-            //new RequestException('Error Communicating with Server', new Request('GET', 'test'))
-        ]);
-        $handlerStack = HandlerStack::create($responseHandler);
-        $client = new Client(['handler' => $handlerStack]);
+        [$client, $responseHandler] = $this->mkClientStub($expectedResponseJson);
         $this->vm->setHttpClient($client);
-
         $instanceId = 'testtesttesttesttest';
+
+        $urlBuilder = function () use (&$urlBuilderArgs) {
+            $urlBuilderArgs = func_get_args();
+            return 'http://localhost';
+        };
+        $this->vm->setUrlBuilder($urlBuilder);
+
+        $result = $this->vm->startInstance($instanceId);
+
+        $this->assertIsArray($urlBuilderArgs);
+        $this->assertNotEmpty($urlBuilderArgs);
+        $this->assertSame($expectedResponse, $result);
+    }
+
+    public function testInstances_StartInstance_UsingClientStub() {
+        $expectedResponse = $this->mkSuccessResponse([
+            'startInstanceData' => 'ok',
+        ]);
+        $expectedResponseJson = $this->toJson($expectedResponse);
+        [$client, $responseHandler] = $this->mkClientStub($expectedResponseJson);
+        $this->vm->setHttpClient($client);
+        $instanceId = 'testtesttesttesttest';
+
         $result = $this->vm->startInstance($instanceId);
 
         $this->assertSame($expectedResponse, $result);
         $lastRequest = $responseHandler->getLastRequest();
         $this->assertSame('POST', $lastRequest->getMethod());
-        $this->assertSame(  $this->vm->getUrlBuilder()->buildUrl(Endpoint::START_INSTANCE), $lastRequest->getUri()->__toString());
+        $this->assertSame($this->vm->getUrlBuilder()(Endpoint::START_INSTANCE), $lastRequest->getUri()->__toString());
     }
 
     public function testInstances_StopInstance_UsingStubServer() {
@@ -244,7 +259,7 @@ class VmTest extends TestCase {
      * @param string $recordingId
      */
     public function testRecordings_GetRecording_ServerSideChecks(string $expectedMessage, string $recordingId) {
-        $url = $this->urlBuilder->buildUrl(Endpoint::GET_RECORDING, ['recordingID' => $recordingId]);
+        $url = ($this->urlBuilder)(Endpoint::GET_RECORDING, ['recordingID' => $recordingId]);
         $result = $this->vm->send('GET', $url);
         $this->checkErrorResult($result, 400, $expectedMessage);
     }
@@ -256,23 +271,6 @@ class VmTest extends TestCase {
     public function testMeetings_GetMeetings() {
         $result = $this->vm->getMeetings();
         $this->checkSuccessResult($result);
-        /*
-                if (isset($responseMeetings['data'][0])) {
-                    $this->assertContains('ReturnCode', $responseMeetings['data'][0]);
-                    $this->assertContains('MeetingName', $responseMeetings['data'][0]);
-                    $this->assertContains('MeetingID', $responseMeetings['data'][0]);
-                    $this->assertContains('InternalMeetingID', $responseMeetings['data'][0]);
-                    $this->assertContains('CreateTime', $responseMeetings['data'][0]);
-                    $this->assertContains('CreateDate', $responseMeetings['data'][0]);
-                    $this->assertContains('VoiceBridge', $responseMeetings['data'][0]);
-                    $this->assertContains('DialNumber', $responseMeetings['data'][0]);
-                    $this->assertContains('AttendeePW', $responseMeetings['data'][0]);
-                    $this->assertContains('ModeratorPW', $responseMeetings['data'][0]);
-                    $this->assertContains('Recording', $responseMeetings['data'][0]);
-                    $this->assertContains('StartTime', $responseMeetings['data'][0]);
-                    $this->assertContains('MaxUsers', $responseMeetings['data'][0]);
-                }
-         */
         $this->markTestIncomplete();
     }
     
@@ -322,7 +320,7 @@ class VmTest extends TestCase {
         $expectedResponse = $this->mkSuccessResponse($expectedResponseData);
         Server::enqueueResponse($this->toJson($expectedResponse));
         $urlBuilder = $this->createStub(UrlBuilder::class);
-        $urlBuilder->method('buildUrl')
+        $urlBuilder->method('__invoke')
             ->willReturn(Server::$url . $endpoint);
         $this->vm->setUrlBuilder($urlBuilder);
     }
@@ -336,5 +334,17 @@ class VmTest extends TestCase {
 
     private function toJson($val): string {
         return json_encode($val, JSON_UNESCAPED_SLASHES);
+    }
+
+    private function mkClientStub(string $expectedResponse): array {
+        // Create a mock and queue two responses.
+        $responseHandler = new MockHandler([
+            new Response(200, ['X-Foo' => 'Bar'], $expectedResponse),
+            new Response(202, ['Content-Length' => strlen($expectedResponse)]),
+            //new RequestException('Error Communicating with Server', new Request('GET', 'test'))
+        ]);
+        $handlerStack = HandlerStack::create($responseHandler);
+        $client = new Client(['handler' => $handlerStack]);
+        return [$client, $responseHandler];
     }
 }
