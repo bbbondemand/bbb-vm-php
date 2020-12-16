@@ -398,7 +398,8 @@ function main(): void {
     }, null, $indent);
 
     // Meetings
-    test("Vm::getMeetings(), Vm::getMeeting()", function () use ($vm) {
+    test("Vm::getMeetings(),
+        Vm::getMeeting()", function () use ($vm) {
         $result = checkSuccessResult($vm, $vm->getMeetings());
 
         // There should be always not empty list of meetings for testing:
