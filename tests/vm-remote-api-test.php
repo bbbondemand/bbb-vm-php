@@ -62,9 +62,12 @@ function checkErrorResult(Vm $vm, array $result, string $expectedMessage, int $e
     return $result;
 }
 
-function checkArrHasNotEmptyItems(array $expectedKeys, array $arr) {
+function checkArrShape(array $expectedKeys, array $arr, bool $checkLen): void {
     foreach ($expectedKeys as $expectedKey) {
         assert(isset($arr[$expectedKey]), 'Checking the key: ' . $expectedKey);
+    }
+    if ($checkLen) {
+        assert(count($expectedKeys) === count($arr));
     }
 }
 
@@ -127,6 +130,13 @@ function writeLnIndent(string $text, int $indent): void {
     echo str_repeat('    ', $indent) . $text . "\n";
 }
 
+/**
+ * @param Closure $predicate
+ * @param string $errorMessage
+ * @param int $waitSecs
+ * @param int $sleepSecs
+ * @return mixed
+ */
 function waitUntil(Closure $predicate, string $errorMessage, int $waitSecs, int $sleepSecs = 10) {
     for ($i = 0; $i < $waitSecs / $sleepSecs; $i++) {
         $res = $predicate($i, $sleepSecs);
@@ -220,10 +230,10 @@ function checkMeetingData(array $meetingData): void {
         //'MaxUsers': can be missing
         //'ModeratorCount': can be missing
     ];
-    checkArrHasNotEmptyItems($meetingKeys, $meetingData);
+    checkArrShape($meetingKeys, $meetingData, false);
 }
 
-function checkRecordingData(array $recordingData) {
+function checkRecordingData(array $recordingData): void {
     $recordingKeys = [
         "RecordID",
         "MeetingID",
@@ -236,18 +246,19 @@ function checkRecordingData(array $recordingData) {
         "MetaData",
         "Playback",
     ];
-    checkArrHasNotEmptyItems($recordingKeys, $recordingData);
-    foreach ($recordingData['Playback'] as $key => $playbackData) {
-        // todo: weird result, why to use 3-dim array?
+    checkArrShape($recordingKeys, $recordingData, false);
+    foreach ($recordingData['Playback'] as $key => $playbackDataArr) {
         if ($key === 'Format') {
-            // todo: Add $checkPlaybackFormat() to check $playbackFormat
+            foreach ($playbackDataArr as $playbackData) {
+                checkArrShape(['Type', 'Url', 'Length', 'Images'], $playbackData, true);
+            }
         } else {
             throw new UnexpectedValueException();
         }
     }
 }
 
-function markTestIncomplete(string $test) {
+function markTestIncomplete(string $test): void {
     throw new IncompleteTestError($test);
 }
 
@@ -277,7 +288,7 @@ function main(): void {
     test("Vm::getBillingSummary()", function () use ($vm) {
         $result = checkSuccessResult($vm, $vm->getBillingSummary());
         foreach ($result['data'] as $billingActivityData) {
-            checkArrHasNotEmptyItems(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData);
+            checkArrShape(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData, false);
         }
     }, null, $indent);
 
@@ -293,9 +304,22 @@ function main(): void {
 
         test("Vm::getInstances()", function () use ($vm) {
             $result = checkSuccessResult($vm, $vm->getInstances());
+            $totalNumOfInstances = $onDemandNumOfInstances = 0;
             foreach ($result['data'] as $instanceData) {
                 checkInstanceData($instanceData);
+                if ($instanceData['ManagedRecordings']) {
+                    $onDemandNumOfInstances++;
+                }
+                $totalNumOfInstances++;
             }
+            // There should be some instances for testing, ensure that this is true:
+            assert($totalNumOfInstances > 0);
+            assert($onDemandNumOfInstances > 0);
+            assert($totalNumOfInstances > $onDemandNumOfInstances);
+
+            $result = $vm->getInstances(['ManageRecordings' => 'true']);
+            checkSuccessResult($vm, $result);
+            assert(count($result['data']) === $onDemandNumOfInstances);
         }, null, $indent);
 
         test("Vm::createInstance() with ManagedRecordings and with Tags,
@@ -331,7 +355,8 @@ function main(): void {
 
             test("Vm::stopInstance(): stop " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $instanceId, $vm) {
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE);
-                checkSuccessResult($vm, $vm->stopInstance($instanceId), true);
+                $result = $vm->stopInstance($instanceId);
+                checkSuccessResult($vm, $result, true);
                 waitInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED, $indent + 1);
             }, null, $indent);
 
@@ -344,14 +369,15 @@ function main(): void {
 
             test("Vm::startInstance(): start " . InstanceStatus::STOPPED . " instance", function () use ($indent, $vm, $instanceId) {
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED);
-                checkSuccessResult($vm, $vm->startInstance($instanceId), true);
+                $result = $vm->startInstance($instanceId);
+                checkSuccessResult($vm, $result, true);
                 waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
             }, null, $indent);
 
             test("Vm::getInstanceHistory()", function () use ($vm, $instanceId) {
                 $result = checkSuccessResult($vm, $vm->getInstanceHistory($instanceId));
                 foreach ($result['data'] as $instanceHistoryData) {
-                    checkArrHasNotEmptyItems(['ID', 'Type', 'TimeStamp'], $instanceHistoryData);
+                    checkArrShape(['ID', 'Type', 'TimeStamp'], $instanceHistoryData, true);
                 }
             }, null, $indent);
 
@@ -401,14 +427,18 @@ function main(): void {
     test("Vm::getMeetings(),
         Vm::getMeeting()", function () use ($vm) {
         $result = checkSuccessResult($vm, $vm->getMeetings());
-
-        // There should be always not empty list of meetings for testing:
         $meeting = null;
         foreach ($result['data'] as $meetingData) {
             checkMeetingData($meetingData);
             $meeting = $meetingData;
         }
         assert(is_array($meeting));
+        // There should be always > 1 meetings for testing:
+        assert(count($result['data']) > 2);
+
+        $filteredMeetingsResult = $vm->getMeetings(['MeetingID' => $meeting['MeetingID']]);
+        checkSuccessResult($vm, $filteredMeetingsResult);
+        assert(1 === count($filteredMeetingsResult['data']), 'Actual count: ' . count($filteredMeetingsResult['data']));
 
         $result = checkSuccessResult($vm, $vm->getMeeting($meeting['MeetingID']));
         checkMeetingData($result['data']);
@@ -447,14 +477,24 @@ function main(): void {
             Vm::unpublishRecording()", function () use ($indent, $vm, $testingRecording) {
             if ($testingRecording['State'] === RecordingState::PUBLISHED) {
                 $result = $vm->unpublishRecording($testingRecording['RecordID']);
-                checkSuccessResultShapeAndStatusCode($vm, $result);
-                // todo: right now $result['data'] === '', expected null
-                assert($result['data'] === '');
+                checkSuccessResult($vm, $result, true);
                 waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::UNPUBLISHED, $indent + 1);
+                $result = $vm->publishRecording($testingRecording['RecordID']);
+                checkSuccessResult($vm, $result);
+                checkArrShape(['URL'], $result['data'], true);
+                assert(count($result['data']) === 1);
+                waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::PUBLISHED, $indent + 1);
             } elseif ($testingRecording['State'] === RecordingState::UNPUBLISHED) {
                 $result = $vm->publishRecording($testingRecording['RecordID']);
                 checkSuccessResult($vm, $result);
+                checkArrShape(['URL'], $result['data'], true);
                 waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::PUBLISHED, $indent + 1);
+
+                $result = $vm->unpublishRecording($testingRecording['RecordID']);
+                checkSuccessResult($vm, $result, true);
+                waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::UNPUBLISHED, $indent + 1);
+            } else {
+                throw new UnexpectedValueException("Unknown recording state: " . print_r($testingRecording['State']));
             }
         }, null, $indent);
 
@@ -462,9 +502,7 @@ function main(): void {
             $recordingId = $testingRecording['RecordID'];
             checkSuccessResult($vm, $vm->getRecording($recordingId)); // Ensure that the recording exist before deletion
             $result = $vm->deleteRecording($recordingId);
-            checkSuccessResultShapeAndStatusCode($vm, $result);
-            // todo: right now $result['data'] === '', expected null
-            assert($result['data'] === '');
+            checkSuccessResult($vm, $result, true);
             /* todo:
             waitUntil(function (int $i, int $sleepSecs) use ($recordingId, $indent, $vm): bool {
                 foreach ($vm->getRecordings()['data'] as $recordingData) {
@@ -485,7 +523,7 @@ function main(): void {
         $result = checkSuccessResult($vm, $vm->getRegions());
         foreach ($result['data'] as $key => $regionData) {
             assert((bool) preg_match('~^[-0-9a-z]+$~si', $key));
-            checkArrHasNotEmptyItems(['Name', 'Town', 'Continent'], $regionData);
+            checkArrShape(['Name', 'Town', 'Continent'], $regionData, true);
         }
     }, null, $indent);
 }
