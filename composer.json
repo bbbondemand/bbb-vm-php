@@ -20,9 +20,7 @@
         "ext-json": "*"
     },
     "require-dev": {
-        "phpunit/phpunit": "9.*",
-        "roave/security-advisories": "dev-master",
-        "barryvdh/laravel-ide-helper": "^2.6"
+        "phpunit/phpunit": "9.*"
     },
     "autoload": {
         "psr-4": {
@@ -31,17 +29,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "BBBondemand\\": "tests"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "BBBondemand\\BBBondemandServiceProvider"
-            ],
-            "aliases": {
-                "BBBondemand": "BBBondemand\\Facades\\Vm"
-            }
+            "BBBondemand\\Test\\": "tests"
         }
     }
 }
