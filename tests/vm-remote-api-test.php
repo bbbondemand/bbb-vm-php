@@ -452,7 +452,6 @@ function main(): void {
                 waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::UNPUBLISHED, $indent + 1);
             } elseif ($testingRecording['State'] === RecordingState::UNPUBLISHED) {
                 $result = $vm->publishRecording($testingRecording['RecordID']);
-                d($result);
                 checkSuccessResult($vm, $result);
                 waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::PUBLISHED, $indent + 1);
             }
