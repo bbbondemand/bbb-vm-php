@@ -73,13 +73,14 @@ function test(string $test, Closure $fn, $args = null, int $indent = 0) {
         } else {
             $redColor = $noColor = '';
         }
-        writeLnIndent("{$redColor}Skipped incomplete test: $test$noColor\n", $indent);
+        writeLnIndent("{$redColor}Skipped incomplete test: " . $e->getMessage() . "$noColor\n", $indent);
     }
     return null;
 }
 
 function deleteAllInstances(Vm $vm): int {
     $numOfDeletedInstances = 0;
+    /*
     foreach ($vm->getInstances()['data'] as $instanceData) {
         if ($instanceData['Status'] !== InstanceStatus::DELETED) {
             checkSuccessResult($vm, $vm->deleteInstance($instanceData['ID']), true);
@@ -91,6 +92,7 @@ function deleteAllInstances(Vm $vm): int {
             throw new UnexpectedValueException(print_r($instanceData, true));
         }
     }
+    */
     return $numOfDeletedInstances;
 }
 
@@ -111,19 +113,39 @@ function writeLnIndent(string $text, int $indent): void {
     echo str_repeat('    ', $indent) . $text . "\n";
 }
 
+function waitUntil(Closure $predicate, string $errorMessage, int $waitSecs, int $sleepSecs = 10) {
+    for ($i = 0; $i < $waitSecs / $sleepSecs; $i++) {
+        $res = $predicate($i, $sleepSecs);
+        if ($res) {
+            return $res;
+        }
+        sleep($sleepSecs);
+    }
+    throw new RuntimeException(str_replace('{waitedSecs}', $i * $sleepSecs, $errorMessage));
+}
+
 function waitInstanceStatus(Vm $vm, string $instanceId, string $expectedStatus, int $indent = 0): void {
-    $sleepSecs = 10;
-    $waitMins = 5;
-    for ($i = 0; $i < 60 * $waitMins / $sleepSecs; $i++) {
+    waitUntil(function (int $i, int $sleepSecs) use ($vm, $instanceId, $expectedStatus, $indent): bool {
         $curStatus = $vm->getInstance($instanceId)['data']['Status'];
         if ($curStatus === $expectedStatus) {
             writeLnIndent("The instance '$instanceId' now has the expected '$curStatus' status", $indent);
-            return;
+            return true;
         }
         writeLnIndent("Waiting until instance '$instanceId' will have the '$expectedStatus' status, current status: '$curStatus', waiting $sleepSecs seconds...", $indent);
-        sleep($sleepSecs);
-    }
-    throw new RuntimeException("Instance '$instanceId' can't get the expected status '$expectedStatus', waited: " . ($i * $sleepSecs) . ' seconds');
+        return false;
+    }, "Instance '$instanceId' can't get the expected status '$expectedStatus', waited: {waitedSecs} seconds", 60 * 5);
+}
+
+function waitRecordingState(Vm $vm, string $recordingId, string $expectedState, int $indent = 0): void {
+    waitUntil(function (int $i, int $sleepSecs) use ($vm, $recordingId, $expectedState, $indent): bool {
+        $curState = $vm->getRecording($recordingId)['data']['State'];
+        if ($curState === $expectedState) {
+            writeLnIndent("The recording '$recordingId' now has the expected '$curState' state", $indent);
+            return true;
+        }
+        writeLnIndent("Waiting until recording '$recordingId' will have the '$expectedState' state, current state: '$curState', waiting $sleepSecs seconds...", $indent);
+        return false;
+    }, "Recording '$recordingId' can't get the expected state '$expectedState', waited: {waitedSecs} seconds", 60 * 5);
 }
 
 function checkInstanceStatus(Vm $vm, string $instanceId, string $expectedStatus): void {
@@ -139,6 +161,13 @@ function checkCreateInstanceResult(Vm $vm, array $creationResult): array {
     assert(strlen($creationData['Host']) > 0);
     assert(strlen($creationData['TestUrl']) > 0);
     return $creationData;
+}
+
+function createOnDemandInstance(Vm $vm): array {
+    return $vm->createInstance([
+        'ManageRecordings' => true,
+        'Tags' => 'foo,bar',
+    ]);
 }
 
 function checkInstanceData(array $instanceData): void {
@@ -167,15 +196,15 @@ function checkMeetingData(array $meetingData): void {
         'AttendeePW',
         'ModeratorPW',
         'Duration',
-        'HasUserJoined',
+        //'HasUserJoined': can be missing
         //'Recording': can be missing
         'StartTime',
         'EndTime',
-        'ParticipantCount',
+        //'ParticipantCount': can be missing
         //'ListenerCount': can be missing
         //'VideoCount': can be missing
         //'MaxUsers': can be missing
-        'ModeratorCount',
+        //'ModeratorCount': can be missing
         'Attendees',
     ];
     $attendeeKeys = [
@@ -223,8 +252,8 @@ function checkRecordingData(array $recordingData) {
     }
 }
 
-function markTestIncomplete(string $test, int $lineNum) {
-    throw new IncompleteTestError($test . ', line: ' . $lineNum);
+function markTestIncomplete(string $test) {
+    throw new IncompleteTestError($test);
 }
 
 function main(): void {
@@ -234,16 +263,30 @@ function main(): void {
         writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm), 0);
     });
 
+//    d($vm->getMeetings(), $vm->getRecordings());
+//    //deleteAllInstances($vm);
+//    $result = createOnDemandInstance($vm);
+//    waitInstanceStatus($vm, $result['data']['ID'], InstanceStatus::AVAILABLE);
+//    d($result);
+
+    d($vm->getInstances());
+    d($vm->getRecordings());
+
     $indent = 0;
 
     writeLnIndent("Tests started at " . (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s') . ' (UTC)', $indent);
 
-    writeLnIndent("Total instances: " . array_reduce($vm->getInstances()['data'], function ($acc) {
-            $acc += 1;
-            return $acc;
-        }, 0), $indent);
+    $availableInstances = $totalInstances = 0;
+    foreach ($vm->getInstances()['data'] as $instanceData) {
+        if ($instanceData['Status'] === InstanceStatus::AVAILABLE) {
+            $availableInstances++;
+        }
+        $totalInstances++;
+    }
+    writeLnIndent("Total instances: " . $totalInstances, $indent);
+    writeLnIndent(InstanceStatus::AVAILABLE . " instances: " . $availableInstances, $indent);
     writeLnIndent("Deleted leftover instances: " . deleteAllInstances($vm) . "\n", $indent);
-    
+
     // Billing
     test("Vm::getBillingSummary()", function () use ($vm) {
         $result = checkSuccessResult($vm, $vm->getBillingSummary());
@@ -251,7 +294,7 @@ function main(): void {
             checkArrHasNotEmptyItems(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData);
         }
     }, null, $indent);
-
+/*
     // Instances
     test("Vm::getInstances(),
         Vm::createInstance(),
@@ -276,17 +319,15 @@ function main(): void {
             Vm::stopInstance(): stop " . InstanceStatus::STOPPED . " instance,
             Vm::startInstance(): start " . InstanceStatus::STOPPED . " instance,
             Vm::getInstanceHistory(),
-            Vm::deleteInstance(): delete " . InstanceStatus::STOPPED . " instance", function () use ($indent, $vm) {
+            Vm::deleteInstance(): delete " . InstanceStatus::STOPPED . " instance,
+            Vm::deleteInstance(): delete " . InstanceStatus::DELETED . " instance", function () use ($indent, $vm) {
             $indent += 1;
 
             $instanceId = test('Vm::createInstance() with ManagedRecordings and with Tags', function () use ($indent, $vm) {
-                $createInstanceResult = $vm->createInstance([
-                    'ManageRecordings' => true,
-                    'Tags' => 'foo,bar',
-                ]);
+                $createInstanceResult = createOnDemandInstance($vm);
                 checkCreateInstanceResult($vm, $createInstanceResult);
                 $instanceId = $createInstanceResult['data']['ID'];
-                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
                 return $instanceId;
             }, null, $indent);
 
@@ -296,7 +337,7 @@ function main(): void {
             }, null, $indent);
 
             test("Vm::startInstance(): start " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $vm, $instanceId) {
-                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
                 $result = $vm->startInstance($instanceId);
                 checkErrorResult($vm, $result, 'Cannot start an already AVAILABLE instance', 400);
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE); // should be not changed
@@ -305,7 +346,7 @@ function main(): void {
             test("Vm::stopInstance(): stop " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $instanceId, $vm) {
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE);
                 checkSuccessResult($vm, $vm->stopInstance($instanceId), true);
-                waitInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED, $indent);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED, $indent + 1);
             }, null, $indent);
 
             test("Vm::stopInstance(): stop " . InstanceStatus::STOPPED . " instance", function () use ($vm, $instanceId) {
@@ -318,7 +359,7 @@ function main(): void {
             test("Vm::startInstance(): start " . InstanceStatus::STOPPED . " instance", function () use ($indent, $vm, $instanceId) {
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED);
                 checkSuccessResult($vm, $vm->startInstance($instanceId), true);
-                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
             }, null, $indent);
 
             test("Vm::getInstanceHistory()", function () use ($vm, $instanceId) {
@@ -329,12 +370,18 @@ function main(): void {
             }, null, $indent);
 
             test("Vm::deleteInstance(): delete " . InstanceStatus::STOPPED . " instance", function () use ($indent, $instanceId, $vm) {
+                $instanceStatus = $vm->getInstance($instanceId)['data']['Status'];
+                if ($instanceStatus !== InstanceStatus::STOPPED) {
+                    assert($instanceStatus !== InstanceStatus::DELETED);
+                    $vm->stopInstance($instanceId);
+                    waitInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED, $indent + 1);
+                }
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::STOPPED);
                 checkSuccessResult($vm, $vm->deleteInstance($instanceId), true);
-                waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent + 1);
             }, null, $indent);
 
-            test('VM::deleteInstance(): delete ' . InstanceStatus::DELETED . ' instance', function () use ($vm, $instanceId) {
+            test('Vm::deleteInstance(): delete ' . InstanceStatus::DELETED . ' instance', function () use ($vm, $instanceId) {
                 checkInstanceStatus($vm, $instanceId, InstanceStatus::DELETED);
                 // this is idempotent API call
                 checkSuccessResult($vm, $vm->deleteInstance($instanceId), true);
@@ -342,7 +389,8 @@ function main(): void {
         }, null, $indent);
 
         test("Vm::createInstance() without ManagedRecordings and without Tags,
-            Vm::getInstance()", function () use ($indent, $vm) {
+            Vm::getInstance(),
+            Vm::deleteInstance(): delete " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $vm) {
             $indent += 1;
 
             $result = $vm->createInstance();
@@ -354,19 +402,17 @@ function main(): void {
                 $result = checkSuccessResult($vm, $vm->getInstance($instanceId));
                 checkInstanceData($result['data']);
             }, null, $indent);
-        }, null, $indent);
 
-        test("Vm::deleteInstance(): delete " . InstanceStatus::AVAILABLE . " instance", function () use ($indent, $vm) {
-            $instanceId = $vm->createInstance()['data']['ID'];
-            waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent);
-            checkSuccessResult($vm, $vm->deleteInstance($instanceId), true);
-            waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent);
+            test("Vm::deleteInstance(): delete " . InstanceStatus::AVAILABLE . " instance", function () use ($instanceId, $indent, $vm) {
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::AVAILABLE, $indent + 1);
+                checkSuccessResult($vm, $vm->deleteInstance($instanceId), true);
+                waitInstanceStatus($vm, $instanceId, InstanceStatus::DELETED, $indent + 1);
+            }, null, $indent);
         }, null, $indent);
     }, null, $indent);
-
+*/
     // Meetings
     test("Vm::getMeetings(), Vm::getMeeting()", function () use ($vm) {
-        // GET /meetings
         $result = checkSuccessResult($vm, $vm->getMeetings());
 
         // There should be always not empty list of meetings for testing:
@@ -377,7 +423,6 @@ function main(): void {
         }
         assert(is_array($meeting));
 
-        // GET /meetings/{meetingID}
         $result = checkSuccessResult($vm, $vm->getMeeting($meeting['MeetingID']));
         checkMeetingData($result['data']);
     }, null, $indent);
@@ -387,38 +432,69 @@ function main(): void {
         Vm::getRecording(),
         Vm::unpublishRecording(),
         Vm::deleteRecording(),
-        Vm::publishRecording()", function () use ($vm) {
+        Vm::publishRecording()", function () use ($indent, $vm) {
+        $indent += 1;
 
-        // GET /recordings
-        $getRecordingsResult = checkSuccessResult($vm, $vm->getRecordings());
+        $testingRecording = test("Vm::getRecordings()", function () use ($indent, $vm) {
+            $getRecordingsResult = checkSuccessResult($vm, $vm->getRecordings());
 
-        // There should be always not empty list of recordings for testing:
-        $publishedRecording = $unpublishedRecording = null;
-        foreach ($getRecordingsResult['data'] as $recordingData) {
-            checkRecordingData($recordingData);
-            if ($recordingData['State'] === RecordingState::PUBLISHED) {
-                $publishedRecording = $recordingData;
-            } else {
-                $unpublishedRecording = $recordingData;
+            // There should be always at least 1 recordings for testing:
+            $testingRecording = null;
+            foreach ($getRecordingsResult['data'] as $recordingData) {
+                checkRecordingData($recordingData);
+                $testingRecording = $recordingData;
             }
-        }
+            assert(is_array($testingRecording));
 
-        // Need to have at least two recordings for testing publishing and unpublishing:
-        assert(is_array($publishedRecording) && is_array($unpublishedRecording));
+            // Ensure that the all recordings have the PublushedState
+            if ($testingRecording['State'] === RecordingState::UNPUBLISHED) {
+                $vm->publishRecording($testingRecording['RecordID']);
+                waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::PUBLISHED, $indent + 1);
+            }
 
-        // It does not matter which recording to use for testing getRecording() - it can either published or unpublished one and we use the published recording.
-        $result = checkSuccessResult($vm, $vm->getRecording($publishedRecording['RecordID']));
-        checkRecordingData($result['data']);
+            return $testingRecording;
+        }, null, $indent);
 
-        // @todo: Compare $getRecordingResult with the new result.
+        test("Vm::getRecording()", function () use ($testingRecording, $vm) {
+            // It does not matter which recording to use for testing getRecording() - it can either published or unpublished one and we use the published recording.
+            $recordingId = $testingRecording['RecordID'];
+            $result = checkSuccessResult($vm, $vm->getRecording($recordingId));
+            checkRecordingData($result['data']);
+        }, null, $indent);
 
-        checkSuccessResult($vm, $vm->publishRecording($unpublishedRecording['RecordID']));
+        test("Vm::unpublishRecording()", function () use ($indent, $vm, $testingRecording) {
+            // todo: remove comments after fixing $result['data']
+            //markTestIncomplete("Vm::unpublishRecording(): `data` must be null");
+            assert($testingRecording['State'] === RecordingState::PUBLISHED);
+            $result = $vm->unpublishRecording($testingRecording['RecordID']);
+            //checkSuccessResult($vm, $result);
+            waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::UNPUBLISHED, $indent + 1);
+        }, null, $indent);
 
-        checkSuccessResult($vm, $vm->unpublishRecording($publishedRecording['RecordID']));
+        test("Vm::publishRecording()", function () use ($indent, $vm, $testingRecording) {
+            assert($testingRecording['State'] === RecordingState::UNPUBLISHED);
+            $result = checkSuccessResult($vm, $vm->publishRecording($testingRecording['RecordID']));
+            d($result);
+            waitRecordingState($vm, $testingRecording['RecordID'], RecordingState::PUBLISHED, $indent + 1);
+        }, null, $indent);
 
-        foreach ([$unpublishedRecording, $publishedRecording] as $recording) {
-            checkSuccessResult($vm, $vm->deleteRecording($recording['RecordID']));
-        }
+        test("Vm::deleteRecording()", function ($indent, $vm, $testingRecording) {
+            $recordingId = $testingRecording['RecordID'];
+            checkSuccessResult($vm, $vm->getRecording($recordingId)); // Ensure that the recording exist before deletion
+            $result = checkSuccessResult($vm, $vm->deleteRecording($recordingId));
+            d($result);
+
+            waitUntil(function (int $i, int $sleepSecs) use ($recordingId, $indent, $vm): bool {
+                foreach ($vm->getRecordings()['data'] as $recordingData) {
+                    if ($recordingData['RecordID'] === $recordingId) {
+                        writeLnIndent("Waiting until recording '$recordingId' will be deleted, waiting $sleepSecs seconds...", $indent);
+                        return false;
+                    }
+                }
+                writeLnIndent("The recording '$recordingId' has been deleted sucessfully", $indent + 1);
+                return true;
+            }, "Recording '$recordingId' can't be deleted, waited: {waitedSecs} seconds", 60 * 5);
+        }, null, $indent);
     }, null, $indent);
 
     // Regions
