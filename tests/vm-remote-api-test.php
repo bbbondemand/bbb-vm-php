@@ -18,6 +18,8 @@ use function ini_set;
 
 require __DIR__ . '/bootstrap.php';
 
+const TIMEOUT_SECS = 60 * 6;
+
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 set_error_handler(function ($severity, $message, $filePath, $lineNo) {
@@ -157,7 +159,7 @@ function waitInstanceStatus(Vm $vm, string $instanceId, string $expectedStatus, 
         }
         writeLnIndent("Waiting until instance '$instanceId' will have the '$expectedStatus' status, current status: '$curStatus', waiting $sleepSecs seconds...", $indent);
         return false;
-    }, "Instance '$instanceId' can't get the expected status '$expectedStatus', waited: {waitedSecs} seconds", 60 * 5);
+    }, "Instance '$instanceId' can't get the expected status '$expectedStatus', waited: {waitedSecs} seconds", TIMEOUT_SECS);
 }
 
 function waitRecordingState(Vm $vm, string $recordingId, string $expectedState, int $indent = 0): void {
@@ -291,7 +293,7 @@ function main(): void {
             checkArrShape(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData, false);
         }
     }, null, $indent);
-
+/*
     // Instances
     test("Vm::getInstances(),
         Vm::createInstance(),
@@ -422,7 +424,7 @@ function main(): void {
             }, null, $indent);
         }, null, $indent);
     }, null, $indent);
-
+*/
     // Meetings
     test("Vm::getMeetings(),
         Vm::getMeeting()", function () use ($vm) {
@@ -513,7 +515,7 @@ function main(): void {
                 }
                 writeLnIndent("The recording '$recordingId' has been deleted sucessfully", $indent + 1);
                 return true;
-            }, "Recording '$recordingId' can't be deleted, waited: {waitedSecs} seconds", 60 * 5);
+            }, "Recording '$recordingId' can't be deleted, waited: {waitedSecs} seconds", TIMEOUT_SECS);
             */
         }, null, $indent);
     }, null, $indent);
