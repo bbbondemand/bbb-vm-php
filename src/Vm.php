@@ -1,12 +1,27 @@
 <?php declare(strict_types=1);
 /**
- *  BBB On Demand VM library for PHP
+ * BBB On Demand PHP VM Library
  *
- *  This allows customers to create and manage their own, dedicated virtual servers running BBB. So the '/bigbluebutton/api' end *  point is used
- *  to manage meetings using a standard BBB library or integration; the /vm endpoint is used to manage your own virtual machines - and you would
- *  then use a BBB library to interact with the actual BBB instance running on each machine.
+ * Copyright (c) BBB On Demand
+ * All rights reserved.
  *
- * @author Richard Phillips
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this
+ * software and associated documentation files (the "Software"), to deal in the Software
+ * without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+ * to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 namespace BBBondemand;
 
@@ -87,37 +102,36 @@ class Vm {
         $params = array_merge(["MachineSize" => MachineSize::SMALL], (array)$params);
         $params['MachineSize'] = strtolower($params['MachineSize']);
         $url = ($this->urlBuilder)(Endpoint::CREATE_INSTANCE);
-        return $this->normalizeResult($this->sendPost($url, $params), false);
+        $result = $this->sendPost($url, $params);
+        return $this->normalizeResult($result, false);
     }
 
     public function getInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
-        $pathParams = [
-            'instanceID' => $instanceId,
-        ];
-        $url = ($this->urlBuilder)(Endpoint::GET_INSTANCE, $pathParams);
-        return $this->normalizeResult($this->sendGet($url), false);
+        $url = ($this->urlBuilder)(Endpoint::GET_INSTANCE, ['instanceID' => $instanceId]);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, false);
     }
 
     public function stopInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
         $url = ($this->urlBuilder)(Endpoint::STOP_INSTANCE);
-        return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
+        $result = $this->sendPost($url, ['instanceID' => $instanceId]);
+        return $this->normalizeResult($result, false);
     }
 
     public function deleteInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
-        $pathParams = [
-            'instanceID' => $instanceId,
-        ];
-        $url = ($this->urlBuilder)(Endpoint::DELETE_INSTANCE, $pathParams);
-        return $this->normalizeResult($this->sendDelete($url), false);
+        $url = ($this->urlBuilder)(Endpoint::DELETE_INSTANCE, ['instanceID' => $instanceId]);
+        $result = $this->sendDelete($url);
+        return $this->normalizeResult($result, false);
     }
 
     public function startInstance($instanceId): array {
         $this->checkInstanceId($instanceId);
         $url = ($this->urlBuilder)(Endpoint::START_INSTANCE);
-        return $this->normalizeResult($this->sendPost($url, ['instanceID' => $instanceId]), false);
+        $result = $this->sendPost($url, ['instanceID' => $instanceId]);
+        return $this->normalizeResult($result, false);
     }
 
     public function getInstanceHistory($instanceId) {
@@ -128,14 +142,17 @@ class Vm {
 
     // ## Meetings:
 
-    public function getMeetings(): array {
-        $url = ($this->urlBuilder)(Endpoint::LIST_MEETINGS);
-        return $this->normalizeResult($this->sendGet($url), true);
+    public function getMeetings(array $queryParams = null): array {
+        $queryString = http_build_query((array)$queryParams);
+        $url = ($this->urlBuilder)(Endpoint::LIST_MEETINGS, null, $queryString);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, true);
     }
 
     public function getMeeting($meetingId): array {
         $url = ($this->urlBuilder)(Endpoint::GET_MEETING, ['meetingID' => $meetingId]);
-        return $this->normalizeResult($this->sendGet($url), false);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, false);
     }
 
     // ## Recordings:
@@ -149,32 +166,37 @@ class Vm {
     public function getRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = ($this->urlBuilder)(Endpoint::GET_RECORDING, ['recordingID' => $recordingId]);
-        return $this->normalizeResult($this->sendGet($url), false);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, false);
     }
 
     public function unpublishRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
-        $url = ($this->urlBuilder)(Endpoint::UNPUBLISH_RECORDING, ['recordingID' => $recordingId]);
-        return $this->sendPost($url, ['recordingID' => $recordingId]);
+        $url = ($this->urlBuilder)(Endpoint::UNPUBLISH_RECORDING);
+        $result = $this->sendPost($url, ['recordingID' => $recordingId]);
+        return $this->normalizeResult($result, false);
     }
 
     public function deleteRecording($recordingId): array {
         $this->checkRecordingId($recordingId);
         $url = ($this->urlBuilder)(Endpoint::DELETE_RECORDING, ['recordingID' => $recordingId]);
-        return $this->sendDelete($url);
+        $result = $this->sendDelete($url);
+        return $this->normalizeResult($result, false);
     }
 
     public function publishRecording($recordingId) {
         $this->checkRecordingId($recordingId);
-        $url = ($this->urlBuilder)(Endpoint::PUBLISH_RECORDING, ['recordingID' => $recordingId]);
-        return $this->sendPost($url, ['recordingID' => $recordingId]);
+        $url = ($this->urlBuilder)(Endpoint::PUBLISH_RECORDING);
+        $result = $this->sendPost($url, ['recordingID' => $recordingId]);
+        return $this->normalizeResult($result, false);
     }
 
     // ## Regions:
 
     public function getRegions(): array {
         $url = ($this->urlBuilder)(Endpoint::LIST_REGIONS);
-        return $this->normalizeResult($this->sendGet($url), true);
+        $result = $this->sendGet($url);
+        return $this->normalizeResult($result, true);
     }
 
     // ------------------------------------------------------------------------
