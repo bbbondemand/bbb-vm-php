@@ -52,28 +52,41 @@ var_dump(
 ## Available methods (API)
 
 Main class to interact with the services is Vm. Its method names are very close to [REST API](https://bbbondemand.com/swagger) provided by the service:
-* getBillingSummary()
-* getInstances()
-* createInstance()
-* getInstance()
-* stopInstance()
-* deleteInstance()
-* startInstance()
-* getInstanceHistory()
-* getMeetings()
-* getMeeting()
-* getRecordings()
-* getRecording()
-* unpublishRecording()
-* deleteRecording()
-* publishRecording()
-* getRegions()
+* REST API calls:
+    * Billing
+        * getBillingSummary()
+    * Instances
+        * getInstances()
+        * createInstance()
+        * getInstance()
+        * stopInstance()
+        * deleteInstance()
+        * startInstance()
+        * getInstanceHistory()
+    * Meetings
+        * getMeetings()
+        * getMeeting()
+    * Recordings
+        * getRecordings()
+        * getRecording()
+        * unpublishRecording()
+        * deleteRecording()
+        * publishRecording()
+    * Regions
+        * getRegions()
+* Other utility methods:
+    * setUrlBuilder()
+    * getUrlBuilder()
+    * send()
+    * getLastResponse()
+    * setHttpClient()
+    * getHttpClient()
 
 Please check [the official Swagger documenation](https://bbbondemand.com/swagger) for the full description of the supported REST API by this library.
 
 ## Examples of usage
 
-Many examples of usage can be found in the [./tests directory](./test).
+Many examples of usage can be found in the [./tests directory](./tests).
 
 ## Warning
 
@@ -82,7 +95,7 @@ The result of using of this library may cost money. Please check the [pricing pa
 ## Credits
 
 Thansk to:
-* Bhavdip Pambhar (@bhavdip111) for initial version of this library
+* Bhavdip Pambhar (@bhavdip111): for initial version of this library
 * @jackstr: for many improvements
 
 ## Copyrights

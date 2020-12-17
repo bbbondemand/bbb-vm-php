@@ -293,7 +293,7 @@ function main(): void {
             checkArrShape(['ID', 'CustomerID', 'Year', 'Week', 'Updated'], $billingActivityData, false);
         }
     }, null, $indent);
-/*
+
     // Instances
     test("Vm::getInstances(),
         Vm::createInstance(),
@@ -424,7 +424,7 @@ function main(): void {
             }, null, $indent);
         }, null, $indent);
     }, null, $indent);
-*/
+
     // Meetings
     test("Vm::getMeetings(),
         Vm::getMeeting()", function () use ($vm) {
